@@ -16,15 +16,10 @@ import 'package:serverpod_client/serverpod_client.dart' as _i2;
 import 'dart:async' as _i3;
 import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
     as _i4;
-import 'package:recall_client/src/protocol/dashboard_data.dart' as _i5;
-import 'package:recall_client/src/protocol/contact.dart' as _i6;
-import 'package:recall_client/src/protocol/interaction_summary.dart' as _i7;
-import 'package:recall_client/src/protocol/setup_status.dart' as _i8;
-import 'package:recall_client/src/protocol/agenda_item.dart' as _i9;
-import 'package:recall_client/src/protocol/chat_message.dart' as _i10;
-import 'package:recall_client/src/protocol/greetings/greeting.dart' as _i11;
-import 'package:serverpod_auth_client/serverpod_auth_client.dart' as _i12;
-import 'protocol.dart' as _i13;
+import 'package:recall_client/src/protocol/chat_message.dart' as _i5;
+import 'package:recall_client/src/protocol/greetings/greeting.dart' as _i6;
+import 'package:serverpod_auth_client/serverpod_auth_client.dart' as _i7;
+import 'protocol.dart' as _i8;
 
 /// By extending [EmailIdpBaseEndpoint], the email identity provider endpoints
 /// are made available on the server and enable the corresponding sign-in widget
@@ -240,91 +235,6 @@ class EndpointJwtRefresh extends _i4.EndpointRefreshJwtTokens {
   );
 }
 
-/// {@category Endpoint}
-class EndpointDashboard extends _i2.EndpointRef {
-  EndpointDashboard(_i2.EndpointCaller caller) : super(caller);
-
-  @override
-  String get name => 'dashboard';
-
-  /// Get complete dashboard data
-  _i3.Future<_i5.DashboardData> getDashboardData({int? userId}) =>
-      caller.callServerEndpoint<_i5.DashboardData>(
-        'dashboard',
-        'getDashboardData',
-        {'userId': userId},
-      );
-
-  /// Get all contacts for the user
-  _i3.Future<List<_i6.Contact>> getContacts() =>
-      caller.callServerEndpoint<List<_i6.Contact>>(
-        'dashboard',
-        'getContacts',
-        {},
-      );
-
-  /// Get interactions for a specific contact
-  _i3.Future<List<_i7.InteractionSummary>> getContactInteractions(
-    int contactId,
-  ) => caller.callServerEndpoint<List<_i7.InteractionSummary>>(
-    'dashboard',
-    'getContactInteractions',
-    {'contactId': contactId},
-  );
-
-  /// Trigger manual sync for a user
-  /// If userId is provided, use it directly (for unauthenticated contexts)
-  /// Otherwise try to get from session
-  _i3.Future<void> triggerSync({int? userId}) =>
-      caller.callServerEndpoint<void>(
-        'dashboard',
-        'triggerSync',
-        {'userId': userId},
-      );
-
-  /// Exchange auth code for refresh token and store it
-  /// Returns detailed error info on failure for debugging
-  _i3.Future<bool> exchangeAndStoreGmailToken(
-    String authCode,
-    int userId,
-  ) => caller.callServerEndpoint<bool>(
-    'dashboard',
-    'exchangeAndStoreGmailToken',
-    {
-      'authCode': authCode,
-      'userId': userId,
-    },
-  );
-
-  /// Store refresh token manually (legacy/debug)
-  _i3.Future<void> storeRefreshToken(String refreshToken) =>
-      caller.callServerEndpoint<void>(
-        'dashboard',
-        'storeRefreshToken',
-        {'refreshToken': refreshToken},
-      );
-
-  _i3.Future<_i8.SetupStatus> getSetupStatus({int? userId}) =>
-      caller.callServerEndpoint<_i8.SetupStatus>(
-        'dashboard',
-        'getSetupStatus',
-        {'userId': userId},
-      );
-
-  /// Get agenda items for a specific date range
-  _i3.Future<List<_i9.AgendaItem>> getAgendaItems(
-    DateTime start,
-    DateTime end,
-  ) => caller.callServerEndpoint<List<_i9.AgendaItem>>(
-    'dashboard',
-    'getAgendaItems',
-    {
-      'start': start,
-      'end': end,
-    },
-  );
-}
-
 /// Debug endpoint for testing - to be removed in production
 /// {@category Endpoint}
 class EndpointDebug extends _i2.EndpointRef {
@@ -393,16 +303,16 @@ class EndpointRecall extends _i2.EndpointRef {
   String get name => 'recall';
 
   /// Ask RECALL - RAG-powered question answering with Gemini
-  _i3.Future<_i10.ChatMessage> askRecall(String query) =>
-      caller.callServerEndpoint<_i10.ChatMessage>(
+  _i3.Future<_i5.ChatMessage> askRecall(String query) =>
+      caller.callServerEndpoint<_i5.ChatMessage>(
         'recall',
         'askRecall',
         {'query': query},
       );
 
   /// Get chat history for the user
-  _i3.Future<List<_i10.ChatMessage>> getChatHistory({required int limit}) =>
-      caller.callServerEndpoint<List<_i10.ChatMessage>>(
+  _i3.Future<List<_i5.ChatMessage>> getChatHistory({required int limit}) =>
+      caller.callServerEndpoint<List<_i5.ChatMessage>>(
         'recall',
         'getChatHistory',
         {'limit': limit},
@@ -435,8 +345,8 @@ class EndpointGreeting extends _i2.EndpointRef {
   String get name => 'greeting';
 
   /// Returns a personalized greeting message: "Hello {name}".
-  _i3.Future<_i11.Greeting> hello(String name) =>
-      caller.callServerEndpoint<_i11.Greeting>(
+  _i3.Future<_i6.Greeting> hello(String name) =>
+      caller.callServerEndpoint<_i6.Greeting>(
         'greeting',
         'hello',
         {'name': name},
@@ -446,13 +356,13 @@ class EndpointGreeting extends _i2.EndpointRef {
 class Modules {
   Modules(Client client) {
     serverpod_auth_idp = _i1.Caller(client);
-    auth = _i12.Caller(client);
+    auth = _i7.Caller(client);
     serverpod_auth_core = _i4.Caller(client);
   }
 
   late final _i1.Caller serverpod_auth_idp;
 
-  late final _i12.Caller auth;
+  late final _i7.Caller auth;
 
   late final _i4.Caller serverpod_auth_core;
 }
@@ -477,7 +387,7 @@ class Client extends _i2.ServerpodClientShared {
     bool? disconnectStreamsOnLostInternetConnection,
   }) : super(
          host,
-         _i13.Protocol(),
+         _i8.Protocol(),
          securityContext: securityContext,
          streamingConnectionTimeout: streamingConnectionTimeout,
          connectionTimeout: connectionTimeout,
@@ -488,7 +398,6 @@ class Client extends _i2.ServerpodClientShared {
        ) {
     emailIdp = EndpointEmailIdp(this);
     jwtRefresh = EndpointJwtRefresh(this);
-    dashboard = EndpointDashboard(this);
     debug = EndpointDebug(this);
     email = EndpointEmail(this);
     googleAuth = EndpointGoogleAuth(this);
@@ -500,8 +409,6 @@ class Client extends _i2.ServerpodClientShared {
   late final EndpointEmailIdp emailIdp;
 
   late final EndpointJwtRefresh jwtRefresh;
-
-  late final EndpointDashboard dashboard;
 
   late final EndpointDebug debug;
 
@@ -519,7 +426,6 @@ class Client extends _i2.ServerpodClientShared {
   Map<String, _i2.EndpointRef> get endpointRefLookup => {
     'emailIdp': emailIdp,
     'jwtRefresh': jwtRefresh,
-    'dashboard': dashboard,
     'debug': debug,
     'email': email,
     'googleAuth': googleAuth,

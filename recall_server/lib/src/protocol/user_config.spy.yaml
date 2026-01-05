@@ -8,6 +8,7 @@ fields:
   googleRefreshToken: String? # Encrypted! Never store plain text.
   lastGmailHistoryId: String? # To sync only new emails.
   lastSyncTime: DateTime? # Last successful sync
+  isSyncing: bool? # UI State for ongoing sync
   dailyBriefingTime: int # Hour of day (0-23)
   
   # Subscription

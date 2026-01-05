@@ -23,15 +23,12 @@ import 'notification.dart' as _i10;
 import 'setup_status.dart' as _i11;
 import 'task.dart' as _i12;
 import 'user_config.dart' as _i13;
-import 'package:recall_client/src/protocol/contact.dart' as _i14;
-import 'package:recall_client/src/protocol/interaction_summary.dart' as _i15;
-import 'package:recall_client/src/protocol/agenda_item.dart' as _i16;
-import 'package:recall_client/src/protocol/chat_message.dart' as _i17;
+import 'package:recall_client/src/protocol/chat_message.dart' as _i14;
 import 'package:serverpod_auth_idp_client/serverpod_auth_idp_client.dart'
-    as _i18;
-import 'package:serverpod_auth_client/serverpod_auth_client.dart' as _i19;
+    as _i15;
+import 'package:serverpod_auth_client/serverpod_auth_client.dart' as _i16;
 import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
-    as _i20;
+    as _i17;
 export 'agenda_item.dart';
 export 'chat_message.dart';
 export 'chat_session.dart';
@@ -171,34 +168,20 @@ class Protocol extends _i1.SerializationManager {
       return (data as List).map((e) => deserialize<_i5.Contact>(e)).toList()
           as T;
     }
-    if (t == List<_i14.Contact>) {
-      return (data as List).map((e) => deserialize<_i14.Contact>(e)).toList()
-          as T;
-    }
-    if (t == List<_i15.InteractionSummary>) {
+    if (t == List<_i14.ChatMessage>) {
       return (data as List)
-              .map((e) => deserialize<_i15.InteractionSummary>(e))
-              .toList()
-          as T;
-    }
-    if (t == List<_i16.AgendaItem>) {
-      return (data as List).map((e) => deserialize<_i16.AgendaItem>(e)).toList()
-          as T;
-    }
-    if (t == List<_i17.ChatMessage>) {
-      return (data as List)
-              .map((e) => deserialize<_i17.ChatMessage>(e))
+              .map((e) => deserialize<_i14.ChatMessage>(e))
               .toList()
           as T;
     }
     try {
-      return _i18.Protocol().deserialize<T>(data, t);
+      return _i15.Protocol().deserialize<T>(data, t);
     } on _i1.DeserializationTypeNotFoundException catch (_) {}
     try {
-      return _i19.Protocol().deserialize<T>(data, t);
+      return _i16.Protocol().deserialize<T>(data, t);
     } on _i1.DeserializationTypeNotFoundException catch (_) {}
     try {
-      return _i20.Protocol().deserialize<T>(data, t);
+      return _i17.Protocol().deserialize<T>(data, t);
     } on _i1.DeserializationTypeNotFoundException catch (_) {}
     return super.deserialize<T>(data, t);
   }
@@ -256,15 +239,15 @@ class Protocol extends _i1.SerializationManager {
       case _i13.UserConfig():
         return 'UserConfig';
     }
-    className = _i18.Protocol().getClassNameForObject(data);
+    className = _i15.Protocol().getClassNameForObject(data);
     if (className != null) {
       return 'serverpod_auth_idp.$className';
     }
-    className = _i19.Protocol().getClassNameForObject(data);
+    className = _i16.Protocol().getClassNameForObject(data);
     if (className != null) {
       return 'serverpod_auth.$className';
     }
-    className = _i20.Protocol().getClassNameForObject(data);
+    className = _i17.Protocol().getClassNameForObject(data);
     if (className != null) {
       return 'serverpod_auth_core.$className';
     }
@@ -315,15 +298,15 @@ class Protocol extends _i1.SerializationManager {
     }
     if (dataClassName.startsWith('serverpod_auth_idp.')) {
       data['className'] = dataClassName.substring(19);
-      return _i18.Protocol().deserializeByClassName(data);
+      return _i15.Protocol().deserializeByClassName(data);
     }
     if (dataClassName.startsWith('serverpod_auth.')) {
       data['className'] = dataClassName.substring(15);
-      return _i19.Protocol().deserializeByClassName(data);
+      return _i16.Protocol().deserializeByClassName(data);
     }
     if (dataClassName.startsWith('serverpod_auth_core.')) {
       data['className'] = dataClassName.substring(20);
-      return _i20.Protocol().deserializeByClassName(data);
+      return _i17.Protocol().deserializeByClassName(data);
     }
     return super.deserializeByClassName(data);
   }

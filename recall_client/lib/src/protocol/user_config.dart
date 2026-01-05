@@ -19,6 +19,7 @@ abstract class UserConfig implements _i1.SerializableModel {
     this.googleRefreshToken,
     this.lastGmailHistoryId,
     this.lastSyncTime,
+    this.isSyncing,
     required this.dailyBriefingTime,
     required this.isPro,
     this.subscriptionDate,
@@ -33,6 +34,7 @@ abstract class UserConfig implements _i1.SerializableModel {
     String? googleRefreshToken,
     String? lastGmailHistoryId,
     DateTime? lastSyncTime,
+    bool? isSyncing,
     required int dailyBriefingTime,
     required bool isPro,
     DateTime? subscriptionDate,
@@ -52,6 +54,7 @@ abstract class UserConfig implements _i1.SerializableModel {
           : _i1.DateTimeJsonExtension.fromJson(
               jsonSerialization['lastSyncTime'],
             ),
+      isSyncing: jsonSerialization['isSyncing'] as bool?,
       dailyBriefingTime: jsonSerialization['dailyBriefingTime'] as int,
       isPro: jsonSerialization['isPro'] as bool,
       subscriptionDate: jsonSerialization['subscriptionDate'] == null
@@ -79,6 +82,8 @@ abstract class UserConfig implements _i1.SerializableModel {
 
   DateTime? lastSyncTime;
 
+  bool? isSyncing;
+
   int dailyBriefingTime;
 
   bool isPro;
@@ -100,6 +105,7 @@ abstract class UserConfig implements _i1.SerializableModel {
     String? googleRefreshToken,
     String? lastGmailHistoryId,
     DateTime? lastSyncTime,
+    bool? isSyncing,
     int? dailyBriefingTime,
     bool? isPro,
     DateTime? subscriptionDate,
@@ -116,6 +122,7 @@ abstract class UserConfig implements _i1.SerializableModel {
       if (googleRefreshToken != null) 'googleRefreshToken': googleRefreshToken,
       if (lastGmailHistoryId != null) 'lastGmailHistoryId': lastGmailHistoryId,
       if (lastSyncTime != null) 'lastSyncTime': lastSyncTime?.toJson(),
+      if (isSyncing != null) 'isSyncing': isSyncing,
       'dailyBriefingTime': dailyBriefingTime,
       'isPro': isPro,
       if (subscriptionDate != null)
@@ -141,6 +148,7 @@ class _UserConfigImpl extends UserConfig {
     String? googleRefreshToken,
     String? lastGmailHistoryId,
     DateTime? lastSyncTime,
+    bool? isSyncing,
     required int dailyBriefingTime,
     required bool isPro,
     DateTime? subscriptionDate,
@@ -153,6 +161,7 @@ class _UserConfigImpl extends UserConfig {
          googleRefreshToken: googleRefreshToken,
          lastGmailHistoryId: lastGmailHistoryId,
          lastSyncTime: lastSyncTime,
+         isSyncing: isSyncing,
          dailyBriefingTime: dailyBriefingTime,
          isPro: isPro,
          subscriptionDate: subscriptionDate,
@@ -171,6 +180,7 @@ class _UserConfigImpl extends UserConfig {
     Object? googleRefreshToken = _Undefined,
     Object? lastGmailHistoryId = _Undefined,
     Object? lastSyncTime = _Undefined,
+    Object? isSyncing = _Undefined,
     int? dailyBriefingTime,
     bool? isPro,
     Object? subscriptionDate = _Undefined,
@@ -190,6 +200,7 @@ class _UserConfigImpl extends UserConfig {
       lastSyncTime: lastSyncTime is DateTime?
           ? lastSyncTime
           : this.lastSyncTime,
+      isSyncing: isSyncing is bool? ? isSyncing : this.isSyncing,
       dailyBriefingTime: dailyBriefingTime ?? this.dailyBriefingTime,
       isPro: isPro ?? this.isPro,
       subscriptionDate: subscriptionDate is DateTime?

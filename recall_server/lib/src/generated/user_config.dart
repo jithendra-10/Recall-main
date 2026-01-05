@@ -20,6 +20,7 @@ abstract class UserConfig
     this.googleRefreshToken,
     this.lastGmailHistoryId,
     this.lastSyncTime,
+    this.isSyncing,
     required this.dailyBriefingTime,
     required this.isPro,
     this.subscriptionDate,
@@ -34,6 +35,7 @@ abstract class UserConfig
     String? googleRefreshToken,
     String? lastGmailHistoryId,
     DateTime? lastSyncTime,
+    bool? isSyncing,
     required int dailyBriefingTime,
     required bool isPro,
     DateTime? subscriptionDate,
@@ -53,6 +55,7 @@ abstract class UserConfig
           : _i1.DateTimeJsonExtension.fromJson(
               jsonSerialization['lastSyncTime'],
             ),
+      isSyncing: jsonSerialization['isSyncing'] as bool?,
       dailyBriefingTime: jsonSerialization['dailyBriefingTime'] as int,
       isPro: jsonSerialization['isPro'] as bool,
       subscriptionDate: jsonSerialization['subscriptionDate'] == null
@@ -82,6 +85,8 @@ abstract class UserConfig
 
   DateTime? lastSyncTime;
 
+  bool? isSyncing;
+
   int dailyBriefingTime;
 
   bool isPro;
@@ -106,6 +111,7 @@ abstract class UserConfig
     String? googleRefreshToken,
     String? lastGmailHistoryId,
     DateTime? lastSyncTime,
+    bool? isSyncing,
     int? dailyBriefingTime,
     bool? isPro,
     DateTime? subscriptionDate,
@@ -122,6 +128,7 @@ abstract class UserConfig
       if (googleRefreshToken != null) 'googleRefreshToken': googleRefreshToken,
       if (lastGmailHistoryId != null) 'lastGmailHistoryId': lastGmailHistoryId,
       if (lastSyncTime != null) 'lastSyncTime': lastSyncTime?.toJson(),
+      if (isSyncing != null) 'isSyncing': isSyncing,
       'dailyBriefingTime': dailyBriefingTime,
       'isPro': isPro,
       if (subscriptionDate != null)
@@ -141,6 +148,7 @@ abstract class UserConfig
       if (googleRefreshToken != null) 'googleRefreshToken': googleRefreshToken,
       if (lastGmailHistoryId != null) 'lastGmailHistoryId': lastGmailHistoryId,
       if (lastSyncTime != null) 'lastSyncTime': lastSyncTime?.toJson(),
+      if (isSyncing != null) 'isSyncing': isSyncing,
       'dailyBriefingTime': dailyBriefingTime,
       'isPro': isPro,
       if (subscriptionDate != null)
@@ -190,6 +198,7 @@ class _UserConfigImpl extends UserConfig {
     String? googleRefreshToken,
     String? lastGmailHistoryId,
     DateTime? lastSyncTime,
+    bool? isSyncing,
     required int dailyBriefingTime,
     required bool isPro,
     DateTime? subscriptionDate,
@@ -202,6 +211,7 @@ class _UserConfigImpl extends UserConfig {
          googleRefreshToken: googleRefreshToken,
          lastGmailHistoryId: lastGmailHistoryId,
          lastSyncTime: lastSyncTime,
+         isSyncing: isSyncing,
          dailyBriefingTime: dailyBriefingTime,
          isPro: isPro,
          subscriptionDate: subscriptionDate,
@@ -220,6 +230,7 @@ class _UserConfigImpl extends UserConfig {
     Object? googleRefreshToken = _Undefined,
     Object? lastGmailHistoryId = _Undefined,
     Object? lastSyncTime = _Undefined,
+    Object? isSyncing = _Undefined,
     int? dailyBriefingTime,
     bool? isPro,
     Object? subscriptionDate = _Undefined,
@@ -239,6 +250,7 @@ class _UserConfigImpl extends UserConfig {
       lastSyncTime: lastSyncTime is DateTime?
           ? lastSyncTime
           : this.lastSyncTime,
+      isSyncing: isSyncing is bool? ? isSyncing : this.isSyncing,
       dailyBriefingTime: dailyBriefingTime ?? this.dailyBriefingTime,
       isPro: isPro ?? this.isPro,
       subscriptionDate: subscriptionDate is DateTime?
@@ -278,6 +290,11 @@ class UserConfigUpdateTable extends _i1.UpdateTable<UserConfigTable> {
         table.lastSyncTime,
         value,
       );
+
+  _i1.ColumnValue<bool, bool> isSyncing(bool? value) => _i1.ColumnValue(
+    table.isSyncing,
+    value,
+  );
 
   _i1.ColumnValue<int, int> dailyBriefingTime(int value) => _i1.ColumnValue(
     table.dailyBriefingTime,
@@ -334,6 +351,10 @@ class UserConfigTable extends _i1.Table<int?> {
       'lastSyncTime',
       this,
     );
+    isSyncing = _i1.ColumnBool(
+      'isSyncing',
+      this,
+    );
     dailyBriefingTime = _i1.ColumnInt(
       'dailyBriefingTime',
       this,
@@ -370,6 +391,8 @@ class UserConfigTable extends _i1.Table<int?> {
 
   late final _i1.ColumnDateTime lastSyncTime;
 
+  late final _i1.ColumnBool isSyncing;
+
   late final _i1.ColumnInt dailyBriefingTime;
 
   late final _i1.ColumnBool isPro;
@@ -389,6 +412,7 @@ class UserConfigTable extends _i1.Table<int?> {
     googleRefreshToken,
     lastGmailHistoryId,
     lastSyncTime,
+    isSyncing,
     dailyBriefingTime,
     isPro,
     subscriptionDate,
