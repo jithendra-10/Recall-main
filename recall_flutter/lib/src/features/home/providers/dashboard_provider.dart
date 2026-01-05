@@ -57,7 +57,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
         authenticationKeyManager: null, // Explicitly null
       )..connectivityMonitor = FlutterConnectivityMonitor();
 
-      final data = await tempClient.dashboard.getDashboardData(userId: userId);
+      final data = await tempClient.dashboard.getDashboardData();
       state = DashboardState(
         isLoading: false,
         data: data,

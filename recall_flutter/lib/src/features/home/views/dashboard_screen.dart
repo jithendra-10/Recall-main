@@ -27,6 +27,12 @@ class DashboardScreen extends ConsumerStatefulWidget {
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   int _currentIndex = 0;
+  
+  // Compose Logic State
+  bool _isComposing = false; // Used for UI visibility
+  bool _isSending = false;
+  final TextEditingController _subjectController = TextEditingController();
+  final TextEditingController _bodyController = TextEditingController();
 
   // Get user info logic
   String get _userFirstName {
@@ -49,6 +55,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   void initState() {
     super.initState();
     _checkServerConnection();
+  }
+
+  @override
+  void dispose() {
+    _subjectController.dispose();
+    _bodyController.dispose();
+    super.dispose();
   }
 
   Future<void> _checkServerConnection() async {
@@ -164,30 +177,34 @@ class _HomeTab extends ConsumerWidget {
     final showLoadingOverlay = isLoading || isSyncing;
 
     return SafeArea(
-      child: RefreshIndicator(
-        onRefresh: () => ref.read(dashboardProvider.notifier).refresh(),
-        color: AppColors.primary,
-        backgroundColor: AppColors.backgroundDark,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.only(bottom: 120), // Space for floating nav
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-                child: _PremiumHeader(
-                  firstName: userFirstName,
-                  imageUrl: userImageUrl,
-                  driftingCount: dashboardState.data?.driftingCount ?? 0,
-                ),
-              ),
+      child: Stack(
+        children: [
+          RefreshIndicator(
+            onRefresh: () => ref.read(dashboardProvider.notifier).refresh(),
+            color: AppColors.primary,
+            backgroundColor: AppColors.backgroundDark,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.only(bottom: 120), // Space for floating nav
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                    child: _PremiumHeader(
+                      firstName: userFirstName,
+                      imageUrl: userImageUrl,
+                      driftingCount: dashboardState.data?.driftingCount ?? 0,
+                    ),
+                  ),
 
-              if (dashboardState.isLoading)
-                const _LoadingState()
-              else if (dashboardState.data != null)
-                _DashboardContent(data: dashboardState.data!),
-            ],
+                  if (dashboardState.isLoading)
+                    const _LoadingState()
+                  else if (dashboardState.data != null)
+                    _DashboardContent(data: dashboardState.data!),
+                ],
+              ),
+            ),
           ),
 
           // Blur Overlay & Loading Bar
@@ -201,59 +218,15 @@ class _HomeTab extends ConsumerWidget {
                     child: Container(
                       color: Colors.black.withOpacity(0.3),
                     ),
-                  ),
-                  // Loading Bar
-                  if (isLoading)
-                    const Positioned(
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      child: LinearProgressIndicator(
-                        minHeight: 4,
-                        backgroundColor: Colors.transparent,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                   // Sync Status Text Center
-                   if (isSyncing && !isLoading)
-                     Center(
-                       child: Container(
-                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                         decoration: BoxDecoration(
-                           color: const Color(0xFF1A1F24),
-                           borderRadius: BorderRadius.circular(30),
-                           border: Border.all(color: AppColors.primary.withOpacity(0.3)),
-                           boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.3),
-                                blurRadius: 10,
-                                spreadRadius: 2,
-                              ),
-                           ],
-                         ),
-                         child: Row(
-                           mainAxisSize: MainAxisSize.min,
-                           children: [
-                             const SizedBox(
-                               width: 16,
-                               height: 16,
-                               child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
-                             ),
-                             const SizedBox(width: 12),
-                             const Text(
-                               'Syncing emails...',
-                               style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
-                             ),
-                           ],
-                         ),
-                       ),
-                     ),
+                   ),
+                   const Center(child: CircularProgressIndicator(color: AppColors.primary)),
                 ],
               ),
             ),
         ],
       ),
     );
+}
   }
 }
 
@@ -1011,12 +984,6 @@ class _PremiumBottomNav extends StatelessWidget {
     );
   }
 
-  String _formatTime(DateTime time) {
-    final diff = DateTime.now().toUtc().difference(time);
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m';
-    if (diff.inHours < 24) return '${diff.inHours}h';
-    return '${diff.inDays}d';
-  }
 }
 
 // Add the floating mic button using an Overlay or Stack in the main scaffold if needed, 
@@ -1080,105 +1047,8 @@ class _BottomNavItem extends StatelessWidget {
             ],
           ],
         ),
-      ],
+      ),
     );
-  }
-
-  Widget _buildComposeView() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Compose Draft',
-              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            IconButton(
-              icon: const Icon(Icons.close, color: Colors.white54),
-              onPressed: () => setState(() => _isComposing = false),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        
-        // Subject Field
-        TextField(
-          controller: _subjectController,
-          style: const TextStyle(color: Colors.white),
-          decoration: InputDecoration(
-            labelText: 'Subject',
-            labelStyle: TextStyle(color: Colors.white.withOpacity(0.4)),
-            enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white.withOpacity(0.1))),
-            focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: AppColors.primary)),
-          ),
-        ),
-        const SizedBox(height: 12),
-        
-        // Body Field
-        Expanded(
-          child: TextField(
-            controller: _bodyController,
-            style: const TextStyle(color: Colors.white),
-            maxLines: null,
-            expands: true,
-            textAlignVertical: TextAlignVertical.top,
-            decoration: InputDecoration(
-              hintText: 'Write your message here...',
-              hintStyle: TextStyle(color: Colors.white.withOpacity(0.4)),
-              enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white.withOpacity(0.1))),
-              focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: AppColors.primary)),
-              contentPadding: const EdgeInsets.all(16),
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        
-        // Send Button
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: _isSending ? null : _sendEmail,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-            ),
-            child: _isSending 
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Text('Send Email', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Future<void> _sendEmail() async {
-    if (_bodyController.text.trim().isEmpty) return;
-
-    setState(() => _isSending = true);
-
-    final success = await ref.read(dashboardProvider.notifier).sendEmail(
-      widget.interaction.contactEmail,
-      _subjectController.text,
-      _bodyController.text,
-    );
-
-    if (!mounted) return;
-
-    setState(() => _isSending = false);
-
-    if (success) {
-      Navigator.of(context).pop(); // Close dialog
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email sent successfully!'), backgroundColor: Colors.green),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to send email. Need permission?'), backgroundColor: Colors.red),
-      );
-    }
   }
 }
 

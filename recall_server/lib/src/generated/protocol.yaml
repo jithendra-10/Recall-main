@@ -8,6 +8,15 @@ emailIdp:
   - finishPasswordReset:
 jwtRefresh:
   - refreshAccessToken:
+dashboard:
+  - getDashboardData:
+  - getContacts:
+  - getContactInteractions:
+  - triggerSync:
+  - exchangeAndStoreGmailToken:
+  - storeRefreshToken:
+  - getSetupStatus:
+  - getAgendaItems:
 debug:
   - seedTestData:
   - clearTestData:

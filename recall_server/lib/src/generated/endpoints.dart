@@ -13,16 +13,17 @@
 import 'package:serverpod/serverpod.dart' as _i1;
 import '../auth/email_idp_endpoint.dart' as _i2;
 import '../auth/jwt_refresh_endpoint.dart' as _i3;
-import '../endpoints/debug_endpoint.dart' as _i4;
-import '../endpoints/email_endpoint.dart' as _i5;
-import '../endpoints/google_auth_endpoint.dart' as _i6;
-import '../endpoints/recall_endpoint.dart' as _i7;
-import '../greetings/greeting_endpoint.dart' as _i8;
+import '../endpoints/dashboard_endpoint.dart' as _i4;
+import '../endpoints/debug_endpoint.dart' as _i5;
+import '../endpoints/email_endpoint.dart' as _i6;
+import '../endpoints/google_auth_endpoint.dart' as _i7;
+import '../endpoints/recall_endpoint.dart' as _i8;
+import '../greetings/greeting_endpoint.dart' as _i9;
 import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
-    as _i9;
-import 'package:serverpod_auth_server/serverpod_auth_server.dart' as _i10;
+    as _i10;
+import 'package:serverpod_auth_server/serverpod_auth_server.dart' as _i11;
 import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
-    as _i11;
+    as _i12;
 
 class Endpoints extends _i1.EndpointDispatch {
   @override
@@ -40,31 +41,37 @@ class Endpoints extends _i1.EndpointDispatch {
           'jwtRefresh',
           null,
         ),
-      'debug': _i4.DebugEndpoint()
+      'dashboard': _i4.DashboardEndpoint()
+        ..initialize(
+          server,
+          'dashboard',
+          null,
+        ),
+      'debug': _i5.DebugEndpoint()
         ..initialize(
           server,
           'debug',
           null,
         ),
-      'email': _i5.EmailEndpoint()
+      'email': _i6.EmailEndpoint()
         ..initialize(
           server,
           'email',
           null,
         ),
-      'googleAuth': _i6.GoogleAuthEndpoint()
+      'googleAuth': _i7.GoogleAuthEndpoint()
         ..initialize(
           server,
           'googleAuth',
           null,
         ),
-      'recall': _i7.RecallEndpoint()
+      'recall': _i8.RecallEndpoint()
         ..initialize(
           server,
           'recall',
           null,
         ),
-      'greeting': _i8.GreetingEndpoint()
+      'greeting': _i9.GreetingEndpoint()
         ..initialize(
           server,
           'greeting',
@@ -265,6 +272,149 @@ class Endpoints extends _i1.EndpointDispatch {
         ),
       },
     );
+    connectors['dashboard'] = _i1.EndpointConnector(
+      name: 'dashboard',
+      endpoint: endpoints['dashboard']!,
+      methodConnectors: {
+        'getDashboardData': _i1.MethodConnector(
+          name: 'getDashboardData',
+          params: {},
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['dashboard'] as _i4.DashboardEndpoint)
+                  .getDashboardData(session),
+        ),
+        'getContacts': _i1.MethodConnector(
+          name: 'getContacts',
+          params: {},
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['dashboard'] as _i4.DashboardEndpoint)
+                  .getContacts(session),
+        ),
+        'getContactInteractions': _i1.MethodConnector(
+          name: 'getContactInteractions',
+          params: {
+            'contactId': _i1.ParameterDescription(
+              name: 'contactId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['dashboard'] as _i4.DashboardEndpoint)
+                  .getContactInteractions(
+                    session,
+                    params['contactId'],
+                  ),
+        ),
+        'triggerSync': _i1.MethodConnector(
+          name: 'triggerSync',
+          params: {},
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['dashboard'] as _i4.DashboardEndpoint)
+                  .triggerSync(session),
+        ),
+        'exchangeAndStoreGmailToken': _i1.MethodConnector(
+          name: 'exchangeAndStoreGmailToken',
+          params: {
+            'authCode': _i1.ParameterDescription(
+              name: 'authCode',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+            'userId': _i1.ParameterDescription(
+              name: 'userId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['dashboard'] as _i4.DashboardEndpoint)
+                  .exchangeAndStoreGmailToken(
+                    session,
+                    params['authCode'],
+                    params['userId'],
+                  ),
+        ),
+        'storeRefreshToken': _i1.MethodConnector(
+          name: 'storeRefreshToken',
+          params: {
+            'refreshToken': _i1.ParameterDescription(
+              name: 'refreshToken',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['dashboard'] as _i4.DashboardEndpoint)
+                  .storeRefreshToken(
+                    session,
+                    params['refreshToken'],
+                  ),
+        ),
+        'getSetupStatus': _i1.MethodConnector(
+          name: 'getSetupStatus',
+          params: {
+            'userId': _i1.ParameterDescription(
+              name: 'userId',
+              type: _i1.getType<int?>(),
+              nullable: true,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['dashboard'] as _i4.DashboardEndpoint)
+                  .getSetupStatus(
+                    session,
+                    userId: params['userId'],
+                  ),
+        ),
+        'getAgendaItems': _i1.MethodConnector(
+          name: 'getAgendaItems',
+          params: {
+            'start': _i1.ParameterDescription(
+              name: 'start',
+              type: _i1.getType<DateTime>(),
+              nullable: false,
+            ),
+            'end': _i1.ParameterDescription(
+              name: 'end',
+              type: _i1.getType<DateTime>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['dashboard'] as _i4.DashboardEndpoint)
+                  .getAgendaItems(
+                    session,
+                    params['start'],
+                    params['end'],
+                  ),
+        ),
+      },
+    );
     connectors['debug'] = _i1.EndpointConnector(
       name: 'debug',
       endpoint: endpoints['debug']!,
@@ -276,7 +426,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['debug'] as _i4.DebugEndpoint).seedTestData(
+              ) async => (endpoints['debug'] as _i5.DebugEndpoint).seedTestData(
                 session,
               ),
         ),
@@ -287,7 +437,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['debug'] as _i4.DebugEndpoint)
+              ) async => (endpoints['debug'] as _i5.DebugEndpoint)
                   .clearTestData(session),
         ),
       },
@@ -319,7 +469,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['email'] as _i5.EmailEndpoint).sendEmail(
+              ) async => (endpoints['email'] as _i6.EmailEndpoint).sendEmail(
                 session,
                 params['to'],
                 params['subject'],
@@ -345,7 +495,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['googleAuth'] as _i6.GoogleAuthEndpoint)
+              ) async => (endpoints['googleAuth'] as _i7.GoogleAuthEndpoint)
                   .exchangeCode(
                     session,
                     params['authCode'],
@@ -370,7 +520,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['recall'] as _i7.RecallEndpoint).askRecall(
+              ) async => (endpoints['recall'] as _i8.RecallEndpoint).askRecall(
                 session,
                 params['query'],
               ),
@@ -389,7 +539,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['recall'] as _i7.RecallEndpoint).getChatHistory(
+                  (endpoints['recall'] as _i8.RecallEndpoint).getChatHistory(
                     session,
                     limit: params['limit'],
                   ),
@@ -408,7 +558,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['recall'] as _i7.RecallEndpoint).processVoiceNote(
+                  (endpoints['recall'] as _i8.RecallEndpoint).processVoiceNote(
                     session,
                     params['transcript'],
                   ),
@@ -426,7 +576,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['recall'] as _i7.RecallEndpoint)
+              ) async => (endpoints['recall'] as _i8.RecallEndpoint)
                   .generateDraftEmail(
                     session,
                     params['contactId'],
@@ -451,17 +601,17 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['greeting'] as _i8.GreetingEndpoint).hello(
+              ) async => (endpoints['greeting'] as _i9.GreetingEndpoint).hello(
                 session,
                 params['name'],
               ),
         ),
       },
     );
-    modules['serverpod_auth_idp'] = _i9.Endpoints()
+    modules['serverpod_auth_idp'] = _i10.Endpoints()
       ..initializeEndpoints(server);
-    modules['serverpod_auth'] = _i10.Endpoints()..initializeEndpoints(server);
-    modules['serverpod_auth_core'] = _i11.Endpoints()
+    modules['serverpod_auth'] = _i11.Endpoints()..initializeEndpoints(server);
+    modules['serverpod_auth_core'] = _i12.Endpoints()
       ..initializeEndpoints(server);
   }
 }
