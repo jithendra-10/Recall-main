@@ -1,0 +1,11 @@
+class: ChatSession
+table: recall_chat_session
+fields:
+  ownerId: int
+  title: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  
+indexes:
+  chat_session_owner_idx:
+    fields: ownerId

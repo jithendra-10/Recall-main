@@ -1,0 +1,20 @@
+class: ChatMessage
+table: recall_chat_message
+fields:
+
+  chatSession: ChatSession?, relation
+  
+  ownerId: int
+  role: String  # "user" or "assistant"
+  content: String
+  timestamp: DateTime
+  
+  # Sources used for RAG response (JSON encoded or comma-separated if simple)
+  # Keeping as simple list for now, Serverpod handles List<String> in DB as JSON usually or specialized table
+  # For simple Postgres, List<String> often maps to jsonb or similar. 
+  # Let's stick to what worked before or simpler:
+  sources: List<String>? 
+
+indexes:
+  chat_message_session_idx:
+    fields: chatSessionId

@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="NONE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="0ed09511-0c48-449e-a072-7547ceac86e6" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/recall_client/lib/src/protocol/chat_message.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_client/lib/src/protocol/chat_message.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_client/lib/src/protocol/client.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_client/lib/src/protocol/client.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_client/lib/src/protocol/contact.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_client/lib/src/protocol/contact.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_client/lib/src/protocol/dashboard_data.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_client/lib/src/protocol/dashboard_data.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_client/lib/src/protocol/greetings/greeting.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_client/lib/src/protocol/greetings/greeting.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_client/lib/src/protocol/interaction.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_client/lib/src/protocol/interaction.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_client/lib/src/protocol/interaction_summary.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_client/lib/src/protocol/interaction_summary.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_client/lib/src/protocol/protocol.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_client/lib/src/protocol/protocol.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_client/lib/src/protocol/setup_status.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_client/lib/src/protocol/setup_status.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_client/lib/src/protocol/user_config.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_client/lib/src/protocol/user_config.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_flutter/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/recall_flutter/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_flutter/lib/core/ip_config.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_flutter/lib/core/ip_config.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_flutter/lib/main.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_flutter/lib/main.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_flutter/lib/src/features/auth/controllers/auth_controller.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_flutter/lib/src/features/auth/controllers/auth_controller.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_flutter/lib/src/features/auth/views/setup_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_flutter/lib/src/features/auth/views/setup_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_flutter/lib/src/features/home/providers/dashboard_provider.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_flutter/lib/src/features/home/providers/dashboard_provider.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_flutter/lib/src/features/home/views/ask_recall_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_flutter/lib/src/features/home/views/ask_recall_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_flutter/lib/src/features/home/views/dashboard_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_flutter/lib/src/features/home/views/dashboard_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_flutter/linux/flutter/generated_plugin_registrant.cc" beforeDir="false" afterPath="$PROJECT_DIR$/recall_flutter/linux/flutter/generated_plugin_registrant.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_flutter/linux/flutter/generated_plugin_registrant.h" beforeDir="false" afterPath="$PROJECT_DIR$/recall_flutter/linux/flutter/generated_plugin_registrant.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_flutter/linux/flutter/generated_plugins.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/recall_flutter/linux/flutter/generated_plugins.cmake" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_flutter/macos/Flutter/GeneratedPluginRegistrant.swift" beforeDir="false" afterPath="$PROJECT_DIR$/recall_flutter/macos/Flutter/GeneratedPluginRegistrant.swift" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_flutter/pubspec.lock" beforeDir="false" afterPath="$PROJECT_DIR$/recall_flutter/pubspec.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_flutter/pubspec.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/recall_flutter/pubspec.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_flutter/windows/flutter/generated_plugin_registrant.cc" beforeDir="false" afterPath="$PROJECT_DIR$/recall_flutter/windows/flutter/generated_plugin_registrant.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_flutter/windows/flutter/generated_plugin_registrant.h" beforeDir="false" afterPath="$PROJECT_DIR$/recall_flutter/windows/flutter/generated_plugin_registrant.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_flutter/windows/flutter/generated_plugins.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/recall_flutter/windows/flutter/generated_plugins.cmake" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/bin/main.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/bin/main.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/config/development.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/config/development.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/config/google_client_secret.json" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/config/google_client_secret.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/fix_schema.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/lib/server.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/lib/server.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/lib/src/endpoints/dashboard_endpoint.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/lib/src/endpoints/dashboard_endpoint.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/lib/src/endpoints/debug_endpoint.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/lib/src/endpoints/debug_endpoint.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/lib/src/endpoints/google_auth_endpoint.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/lib/src/endpoints/google_auth_endpoint.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/lib/src/endpoints/recall_endpoint.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/lib/src/endpoints/recall_endpoint.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/lib/src/future_calls/gmail_sync_future_call.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/lib/src/future_calls/gmail_sync_future_call.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/lib/src/generated/chat_message.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/lib/src/generated/chat_message.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/lib/src/generated/contact.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/lib/src/generated/contact.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/lib/src/generated/dashboard_data.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/lib/src/generated/dashboard_data.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/lib/src/generated/endpoints.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/lib/src/generated/endpoints.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/lib/src/generated/greetings/greeting.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/lib/src/generated/greetings/greeting.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/lib/src/generated/interaction.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/lib/src/generated/interaction.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/lib/src/generated/interaction_summary.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/lib/src/generated/interaction_summary.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/lib/src/generated/protocol.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/lib/src/generated/protocol.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/lib/src/generated/protocol.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/lib/src/generated/protocol.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/lib/src/generated/setup_status.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/lib/src/generated/setup_status.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/lib/src/generated/user_config.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/lib/src/generated/user_config.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/lib/src/protocol/chat_message.spy.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/lib/src/protocol/chat_message.spy.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/lib/src/protocol/contact.spy.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/lib/src/protocol/contact.spy.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/lib/src/protocol/interaction.spy.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/lib/src/protocol/interaction.spy.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/lib/src/protocol/user_config.spy.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/lib/src/protocol/user_config.spy.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/lib/src/services/gemini_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/lib/src/services/gemini_service.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/migration.log" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/migrations/migration_registry.txt" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/migrations/migration_registry.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/pubspec.lock" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/pubspec.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/pubspec.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/pubspec.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/server.log" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/server_camelcase_final.log" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/server_camelcase_test.log" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/server_camelcase_verified.log" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/server_clean_migration.log" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/server_debug.log" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/server_final.log" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/server_final_test.log" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/server_fixed.log" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/server_fresh_migration.log" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/server_live.log" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/server_lowercase_final.log" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/server_lowercase_fixed.log" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/server_lowercase_test.log" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/server_migration_clean.log" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/server_oauth_fix.log" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/server_sync_fix.log" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/test/integration/test_tools/serverpod_test_tools.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/test/integration/test_tools/serverpod_test_tools.dart" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ClangdSettings">
+    <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;customColor&quot;: &quot;&quot;,
+  &quot;associatedIndex&quot;: 8
+}</component>
+  <component name="ProjectId" id="37hVnz1PnGerdJIVMa8I4W0Wzo0" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Flutter.main.dart.executor&quot;: &quot;Run&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
+    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
+    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;dart.analysis.tool.window.visible&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;io.flutter.reload.alreadyRun&quot;: &quot;true&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;dart.settings&quot;,
+    &quot;show.migrate.to.gradle.popup&quot;: &quot;false&quot;
+  }
+}</component>
+  <component name="RunManager" selected="Flutter.main.dart">
+    <configuration name="main.dart" type="FlutterRunConfigurationType" factoryName="Flutter" temporary="true" nameIsGenerated="true">
+      <option name="filePath" value="$PROJECT_DIR$/recall_flutter/lib/main.dart" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Flutter.main.dart" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="0ed09511-0c48-449e-a072-7547ceac86e6" name="Changes" comment="" />
+      <created>1767355462099</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1767355462099</updated>
+    </task>
+    <servers />
+  </component>
+</project>

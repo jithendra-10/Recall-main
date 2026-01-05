@@ -1,0 +1,18 @@
+class: Notification
+table: recall_notification
+fields:
+  id: int?
+  ownerId: int
+  type: String # 'urgent', 'followUp', 'networking', 'birthday'
+  title: String
+  message: String
+
+  relatedContact: Contact?, relation
+  createdAt: DateTime
+  isRead: bool
+  actionLabel: String? # e.g. "Draft Email", "Send Wish"
+  actionLink: String? # Deep link or intent
+
+indexes:
+  notif_owner_idx:
+    fields: ownerId

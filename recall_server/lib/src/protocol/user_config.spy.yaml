@@ -1,0 +1,25 @@
+class: UserConfig
+table: recall_user_config
+fields:
+  userInfoId: int
+  # Relation removed to avoid generator deserialization issues
+  # userInfo: module:auth:UserInfo?, relation
+  
+  googleRefreshToken: String? # Encrypted! Never store plain text.
+  lastGmailHistoryId: String? # To sync only new emails.
+  lastSyncTime: DateTime? # Last successful sync
+  dailyBriefingTime: int # Hour of day (0-23)
+  
+  # Subscription
+  isPro: bool
+  subscriptionDate: DateTime?
+
+  # Notification Preferences
+  driftingAlertsEnabled: bool
+  weeklyDigestEnabled: bool
+  newMemoryAlertsEnabled: bool
+
+indexes:
+  user_config_idx:
+    fields: userInfoId
+    unique: true

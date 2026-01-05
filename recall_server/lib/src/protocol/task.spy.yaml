@@ -1,0 +1,18 @@
+class: Task
+table: recall_task
+fields:
+  ownerId: int
+  title: String
+  description: String?
+  isCompleted: bool
+  dueDate: DateTime?
+  
+  # Link to a contact (CRM feature)
+
+  relatedContact: Contact?, relation
+  
+  createdAt: DateTime
+
+indexes:
+  task_owner_idx:
+    fields: ownerId

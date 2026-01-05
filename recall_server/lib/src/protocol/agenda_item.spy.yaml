@@ -1,0 +1,24 @@
+class: AgendaItem
+table: recall_agenda_item
+fields:
+  ownerId: int
+
+  contact: Contact?, relation
+  interactionId: int?
+  
+  title: String
+  description: String?
+  startTime: DateTime
+  endTime: DateTime?
+  
+  priority: String # 'high', 'normal', 'low'
+  status: String # 'upcoming', 'completed', 'cancelled'
+  
+  # Metadata
+  createdAt: DateTime
+  updatedAt: DateTime
+
+indexes:
+  agenda_owner_date_idx:
+    fields: ownerId, startTime
+    unique: false

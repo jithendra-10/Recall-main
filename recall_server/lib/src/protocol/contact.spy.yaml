@@ -1,0 +1,22 @@
+class: Contact
+table: recall_contact
+fields:
+  ownerId: int
+  email: String
+  name: String?
+  avatarUrl: String?
+  healthScore: double # 0-100 (Calculated nightly)
+  lastContacted: DateTime?
+  tags: List<String>? # e.g. ["VIP", "Investor", "New"]
+  summary: String? # AI-generated bio
+  
+  # New fields
+  bio: String?
+  location: String?
+  organization: String?
+  tier: int? # 1=VIP, 2=Regular, etc.
+
+indexes:
+  contact_unique:
+    fields: ownerId, email
+    unique: true

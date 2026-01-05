@@ -1,0 +1,10 @@
+class: InteractionSummary
+fields:
+  contactName: String
+  contactEmail: String
+  contactAvatarUrl: String?
+  summary: String
+  subject: String?
+  body: String?
+  timestamp: DateTime
+  type: String  # "email_in", "email_out", "meeting"
