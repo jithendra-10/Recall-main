@@ -91,8 +91,6 @@ abstract class UserConfig implements _i1.SerializableModel {
 
   bool newMemoryAlertsEnabled;
 
-  bool? isSyncing;
-
   /// Returns a shallow copy of this [UserConfig]
   /// with some or all fields replaced by the given arguments.
   @_i1.useResult

@@ -94,8 +94,6 @@ abstract class UserConfig
 
   bool newMemoryAlertsEnabled;
 
-  bool? isSyncing;
-
   @override
   _i1.Table<int?> get table => t;
 
@@ -314,11 +312,6 @@ class UserConfigUpdateTable extends _i1.UpdateTable<UserConfigTable> {
         table.newMemoryAlertsEnabled,
         value,
       );
-
-  _i1.ColumnValue<bool, bool> isSyncing(bool? value) => _i1.ColumnValue(
-    table.isSyncing,
-    value,
-  );
 }
 
 class UserConfigTable extends _i1.Table<int?> {
@@ -365,10 +358,6 @@ class UserConfigTable extends _i1.Table<int?> {
       'newMemoryAlertsEnabled',
       this,
     );
-    isSyncing = _i1.ColumnBool(
-      'isSyncing',
-      this,
-    );
   }
 
   late final UserConfigUpdateTable updateTable;
@@ -392,8 +381,6 @@ class UserConfigTable extends _i1.Table<int?> {
   late final _i1.ColumnBool weeklyDigestEnabled;
 
   late final _i1.ColumnBool newMemoryAlertsEnabled;
-
-  late final _i1.ColumnBool isSyncing;
 
   @override
   List<_i1.Column> get columns => [

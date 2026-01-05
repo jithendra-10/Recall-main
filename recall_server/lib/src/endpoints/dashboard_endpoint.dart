@@ -33,7 +33,7 @@ class DashboardEndpoint extends Endpoint {
       // Get user config for sync status
       final userConfig = await UserConfig.db.findFirstRow(
         session,
-        where: (t) => t.userInfoId.equals(currentUserId),
+        where: (t) => t.userInfoId.equals(userId),
       );
 
       // AUTO-SYNC: If user has token but never synced (or manually cleared), trigger sync now
@@ -42,10 +42,10 @@ class DashboardEndpoint extends Endpoint {
           userConfig.googleRefreshToken != null && 
           (userConfig.lastSyncTime == null || 
            DateTime.now().toUtc().difference(userConfig.lastSyncTime!).inMinutes > 3)) {
-        session.log('getDashboardData: Auto-triggering first sync for userId=$currentUserId', level: LogLevel.info);
+        session.log('getDashboardData: Auto-triggering first sync for userId=$userId', level: LogLevel.info);
         autoSyncTriggered = true;
         // Run sync in background (don't await to avoid blocking dashboard load)
-        _triggerSyncInternal(session, currentUserId).catchError((e) {
+        _triggerSyncInternal(session, userId).catchError((e) {
           session.log('getDashboardData: Background sync error: $e', level: LogLevel.warning);
         });
       }
@@ -53,7 +53,7 @@ class DashboardEndpoint extends Endpoint {
       // Get recent interactions for memory feed
       final nudgeContact = await Contact.db.findFirstRow(
         session,
-        where: (t) => t.ownerId.equals(currentUserId),
+        where: (t) => t.ownerId.equals(userId),
         orderBy: (t) => t.healthScore,
         orderDescending: false,
       );
@@ -67,7 +67,7 @@ class DashboardEndpoint extends Endpoint {
         // Get last interaction topic
         final lastInteraction = await Interaction.db.findFirstRow(
           session,
-          where: (t) => t.ownerId.equals(currentUserId) & t.contactId.equals(nudgeContact.id!),
+          where: (t) => t.ownerId.equals(userId) & t.contactId.equals(nudgeContact.id!),
           orderBy: (t) => t.date,
           orderDescending: true,
         );
@@ -77,7 +77,7 @@ class DashboardEndpoint extends Endpoint {
       // Get recent interactions for memory feed
       final recentInteractionsRaw = await Interaction.db.find(
         session,
-        where: (t) => t.ownerId.equals(currentUserId),
+        where: (t) => t.ownerId.equals(userId),
         orderBy: (t) => t.date,
         orderDescending: true,
         limit: 10,
@@ -235,6 +235,7 @@ class DashboardEndpoint extends Endpoint {
 
     session.log('exchangeAndStoreGmailToken: Starting for userId=$userId, authCode length=${authCode.length}', level: LogLevel.info);
 
+    try {
       // 1. Load Client Secret from Environment
       // Use DotEnv to ensure we get values loaded in main/server
       final env = DotEnv(includePlatformEnvironment: true)..load();
@@ -374,12 +375,12 @@ class DashboardEndpoint extends Endpoint {
 
     final userConfig = await UserConfig.db.findFirstRow(
       session,
-      where: (t) => t.userInfoId.equals(currentUserId),
+      where: (t) => t.userInfoId.equals(userId),
     );
 
     final interactionCount = await Interaction.db.count(
       session,
-      where: (t) => t.ownerId.equals(currentUserId),
+      where: (t) => t.ownerId.equals(userId),
     );
 
     return SetupStatus(
