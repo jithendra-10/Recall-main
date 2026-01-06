@@ -128,29 +128,43 @@ class GmailSyncFutureCall extends FutureCall {
       // }
 
       String? pageToken;
+      print('DEBUG: Starting Gmail Sync loop...');
       do {
+        print('DEBUG: Fetching messages list... query=$q');
         final listResponse = await gmailApi.users.messages.list(
           'me',
           q: q,
-          maxResults: 100, // Process in batches
+          maxResults: 50,
           pageToken: pageToken,
         );
         
         pageToken = listResponse.nextPageToken;
+        final messages = listResponse.messages;
 
-        if (listResponse.messages != null) {
-           // ... processing loop (see below)
-           session.log('Processing batch of ${listResponse.messages!.length} messages', level: LogLevel.info);
-           for (var msg in listResponse.messages!) {
-             // ... existing processing logic ...
+        if (messages != null && messages.isNotEmpty) {
+           session.log('Processing batch of ${messages.length} messages', level: LogLevel.info);
+           print('DEBUG: Found ${messages.length} messages. Processing...');
+
+           for (var msg in messages) {
              try {
+                // print('DEBUG: Fetching full details for ${msg.id}');
                 final message = await gmailApi.users.messages.get('me', msg.id!, format: 'full');
-                if (_shouldFilterEmail(message)) continue;
+                
+                if (_shouldFilterEmail(message)) {
+                  // print('DEBUG: Filtered out ${msg.id}');
+                  continue;
+                }
+                
                 await _processEmail(session, userConfig, message);
+                // print('DEBUG: Processed ${msg.id}');
+                
              } catch (e) {
+                print('DEBUG: Error processing message ${msg.id}: $e');
                 session.log('Error processing message ${msg.id}: $e', level: LogLevel.warning);
              }
            }
+        } else {
+           print('DEBUG: No messages found in this batch.');
         }
       } while (pageToken != null);
 
@@ -248,7 +262,9 @@ class GmailSyncFutureCall extends FutureCall {
     final from = _getHeader(message, 'From');
     final to = _getHeader(message, 'To');
     final subject = _getHeader(message, 'Subject') ?? '';
+    final internalDateStr = message.internalDate;
     final dateStr = _getHeader(message, 'Date');
+    
     
     if (from == null) return;
 
@@ -296,12 +312,17 @@ class GmailSyncFutureCall extends FutureCall {
       return;
     }
 
-    // Parse date
+    // Parse date using internalDate (reliable timestamp)
     DateTime emailDate;
-    try {
-      emailDate = _parseEmailDate(dateStr ?? '');
-    } catch (_) {
-      emailDate = DateTime.now().toUtc();
+    if (internalDateStr != null) {
+      try {
+        final millis = int.parse(internalDateStr);
+        emailDate = DateTime.fromMillisecondsSinceEpoch(millis, isUtc: true);
+      } catch (_) {
+        emailDate = DateTime.now().toUtc();
+      }
+    } else {
+        emailDate = DateTime.now().toUtc();
     }
 
     // Check for duplicate

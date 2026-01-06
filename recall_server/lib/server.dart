@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:serverpod/serverpod.dart';
+import 'package:serverpod_auth_server/module.dart' hide Protocol, Endpoints, GoogleClientSecret;
 import 'package:serverpod_auth_idp_server/core.dart';
 import 'package:serverpod_auth_idp_server/providers/email.dart';
 import 'package:serverpod_auth_idp_server/providers/google.dart';
@@ -23,7 +24,10 @@ void run(List<String> args) async {
   // Initialize authentication services for the server.
   pod.initializeAuthServices(
     tokenManagerBuilders: [
-      JwtConfigFromPasswords(),
+      ServerSideSessionsConfig(
+        sessionKeyHashPepper: 'ThisIsARandomSessionKeyPepper123!',
+        // Optional: validationCodeHashPepper: '...',
+      ),
     ],
     identityProviderBuilders: [
       // Email identity provider

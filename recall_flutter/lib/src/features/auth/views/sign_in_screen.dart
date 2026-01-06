@@ -109,27 +109,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen>
               transform: Matrix4.translationValues(100, 100, 0),
             ),
           ),
-          // Theme toggle button
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 16,
-            right: 16,
-            child: Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: const Color(0xFF252932),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.1),
-                ),
-              ),
-              child: const Icon(
-                Icons.wb_sunny_outlined,
-                color: AppColors.primary,
-                size: 22,
-              ),
-            ),
-          ),
+          // Theme toggle removed
           // Main content
           SafeArea(
             child: Center(

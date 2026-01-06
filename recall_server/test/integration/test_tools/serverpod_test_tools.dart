@@ -491,8 +491,9 @@ class _DashboardEndpoint {
   final _i2.SerializationManager _serializationManager;
 
   _i3.Future<_i5.DashboardData> getDashboardData(
-    _i1.TestSessionBuilder sessionBuilder,
-  ) async {
+    _i1.TestSessionBuilder sessionBuilder, {
+    int? clientReportedId,
+  }) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
           (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
@@ -504,7 +505,9 @@ class _DashboardEndpoint {
           createSessionCallback: (_) => _localUniqueSession,
           endpointPath: 'dashboard',
           methodName: 'getDashboardData',
-          parameters: _i1.testObjectToJson({}),
+          parameters: _i1.testObjectToJson({
+            'clientReportedId': clientReportedId,
+          }),
           serializationManager: _serializationManager,
         );
         var _localReturnValue =
@@ -521,8 +524,9 @@ class _DashboardEndpoint {
   }
 
   _i3.Future<List<_i6.Contact>> getContacts(
-    _i1.TestSessionBuilder sessionBuilder,
-  ) async {
+    _i1.TestSessionBuilder sessionBuilder, {
+    int? clientReportedId,
+  }) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
           (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
@@ -534,7 +538,9 @@ class _DashboardEndpoint {
           createSessionCallback: (_) => _localUniqueSession,
           endpointPath: 'dashboard',
           methodName: 'getContacts',
-          parameters: _i1.testObjectToJson({}),
+          parameters: _i1.testObjectToJson({
+            'clientReportedId': clientReportedId,
+          }),
           serializationManager: _serializationManager,
         );
         var _localReturnValue =
@@ -709,8 +715,9 @@ class _DashboardEndpoint {
   _i3.Future<List<_i9.AgendaItem>> getAgendaItems(
     _i1.TestSessionBuilder sessionBuilder,
     DateTime start,
-    DateTime end,
-  ) async {
+    DateTime end, {
+    int? clientReportedId,
+  }) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
           (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
@@ -725,6 +732,7 @@ class _DashboardEndpoint {
           parameters: _i1.testObjectToJson({
             'start': start,
             'end': end,
+            'clientReportedId': clientReportedId,
           }),
           serializationManager: _serializationManager,
         );
@@ -1006,8 +1014,9 @@ class _RecallEndpoint {
 
   _i3.Future<String> generateDraftEmail(
     _i1.TestSessionBuilder sessionBuilder,
-    int contactId,
-  ) async {
+    int contactId, {
+    int? clientReportedId,
+  }) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
           (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
@@ -1019,7 +1028,10 @@ class _RecallEndpoint {
           createSessionCallback: (_) => _localUniqueSession,
           endpointPath: 'recall',
           methodName: 'generateDraftEmail',
-          parameters: _i1.testObjectToJson({'contactId': contactId}),
+          parameters: _i1.testObjectToJson({
+            'contactId': contactId,
+            'clientReportedId': clientReportedId,
+          }),
           serializationManager: _serializationManager,
         );
         var _localReturnValue =

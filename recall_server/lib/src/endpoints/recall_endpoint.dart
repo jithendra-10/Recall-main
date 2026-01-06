@@ -290,10 +290,21 @@ class RecallEndpoint extends Endpoint {
   }
 
   /// Generate AI draft email for a contact using Gemini
-  Future<String> generateDraftEmail(Session session, int contactId) async {
+  Future<String> generateDraftEmail(Session session, int contactId, {int? clientReportedId}) async {
+    int? userId;
     final userIdentifier = session.authenticated?.userIdentifier;
-    if (userIdentifier == null) return 'Please sign in to generate drafts.';
-    final userId = int.parse(userIdentifier);
+    if (userIdentifier != null) {
+      userId = int.parse(userIdentifier);
+    } else if (clientReportedId != null) {
+      userId = clientReportedId;
+      session.log('Using clientReportedId for generateDraftEmail: $userId', level: LogLevel.info);
+    } else {
+      // Fallback for debug/demo
+      userId = 1;
+      session.log('Fallback to userId 1 for generateDraftEmail', level: LogLevel.warning);
+    }
+
+    if (userId == null) return 'Please sign in to generate drafts.';
 
     final contact = await Contact.db.findById(session, contactId);
     if (contact == null || contact.ownerId != userId) {

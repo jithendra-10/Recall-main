@@ -278,23 +278,41 @@ class Endpoints extends _i1.EndpointDispatch {
       methodConnectors: {
         'getDashboardData': _i1.MethodConnector(
           name: 'getDashboardData',
-          params: {},
+          params: {
+            'clientReportedId': _i1.ParameterDescription(
+              name: 'clientReportedId',
+              type: _i1.getType<int?>(),
+              nullable: true,
+            ),
+          },
           call:
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async => (endpoints['dashboard'] as _i4.DashboardEndpoint)
-                  .getDashboardData(session),
+                  .getDashboardData(
+                    session,
+                    clientReportedId: params['clientReportedId'],
+                  ),
         ),
         'getContacts': _i1.MethodConnector(
           name: 'getContacts',
-          params: {},
+          params: {
+            'clientReportedId': _i1.ParameterDescription(
+              name: 'clientReportedId',
+              type: _i1.getType<int?>(),
+              nullable: true,
+            ),
+          },
           call:
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['dashboard'] as _i4.DashboardEndpoint)
-                  .getContacts(session),
+              ) async =>
+                  (endpoints['dashboard'] as _i4.DashboardEndpoint).getContacts(
+                    session,
+                    clientReportedId: params['clientReportedId'],
+                  ),
         ),
         'getContactInteractions': _i1.MethodConnector(
           name: 'getContactInteractions',
@@ -401,6 +419,11 @@ class Endpoints extends _i1.EndpointDispatch {
               type: _i1.getType<DateTime>(),
               nullable: false,
             ),
+            'clientReportedId': _i1.ParameterDescription(
+              name: 'clientReportedId',
+              type: _i1.getType<int?>(),
+              nullable: true,
+            ),
           },
           call:
               (
@@ -411,6 +434,7 @@ class Endpoints extends _i1.EndpointDispatch {
                     session,
                     params['start'],
                     params['end'],
+                    clientReportedId: params['clientReportedId'],
                   ),
         ),
       },
@@ -571,6 +595,11 @@ class Endpoints extends _i1.EndpointDispatch {
               type: _i1.getType<int>(),
               nullable: false,
             ),
+            'clientReportedId': _i1.ParameterDescription(
+              name: 'clientReportedId',
+              type: _i1.getType<int?>(),
+              nullable: true,
+            ),
           },
           call:
               (
@@ -580,6 +609,7 @@ class Endpoints extends _i1.EndpointDispatch {
                   .generateDraftEmail(
                     session,
                     params['contactId'],
+                    clientReportedId: params['clientReportedId'],
                   ),
         ),
       },

@@ -79,7 +79,7 @@ Return a valid JSON object. Do not include markdown code blocks.
 
     try {
       final response = await http.post(
-        Uri.parse('$_baseUrl/models/gemini-1.5-flash:generateContent?key=$_apiKey'),
+        Uri.parse('$_baseUrl/models/gemini-pro:generateContent?key=$_apiKey'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'contents': [
@@ -186,7 +186,7 @@ Email:''';
 
     try {
       final response = await http.post(
-        Uri.parse('$_baseUrl/models/gemini-1.5-flash:generateContent?key=$_apiKey'),
+        Uri.parse('$_baseUrl/models/gemini-pro:generateContent?key=$_apiKey'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'contents': [
@@ -247,7 +247,7 @@ Answer concisely and helpfully:''';
 
     try {
       final response = await http.post(
-        Uri.parse('$_baseUrl/models/gemini-1.5-flash:generateContent?key=$_apiKey'),
+        Uri.parse('$_baseUrl/models/gemini-pro:generateContent?key=$_apiKey'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'contents': [
@@ -319,7 +319,7 @@ Return valid JSON only.
 
     try {
       final response = await http.post(
-        Uri.parse('$_baseUrl/models/gemini-1.5-flash:generateContent?key=$_apiKey'),
+        Uri.parse('$_baseUrl/models/gemini-pro:generateContent?key=$_apiKey'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'contents': [

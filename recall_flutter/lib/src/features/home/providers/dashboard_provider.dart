@@ -36,7 +36,12 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
   }
 
   Future<void> fetchDashboardData() async {
-    state = state.copyWith(isLoading: true, error: null);
+    // Only show loading spinner on initial fetch, not background refreshes
+    if (state.data == null) {
+      state = state.copyWith(isLoading: true, error: null);
+    } else {
+      state = state.copyWith(error: null);
+    }
     
     try {
       // WAIT for session to initialize if starting up
@@ -46,18 +51,14 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
         attempts++;
       }
 
-      // Use explicit userId and unauthenticated client to bypass JWT validation issues with legacy keys
-      // Get current user ID from session
-      final userId = sessionManager.signedInUser?.id;
+      // Use authenticated client
+      print('DEBUG: Dashboard Fetch - Session ID: ${sessionManager.signedInUser?.id}');
+      final key = await client.authenticationKeyManager?.get();
+      print('DEBUG: Dashboard Fetch - Key: $key');
       
-      // Create temp client without auth key manager
-      // This ensures we don't send the "Invalid" JWT token that causes the server to reject the request
-      final tempClient = Client(
-        'http://$serverIpAddress:8080/',
-        authenticationKeyManager: null, // Explicitly null
-      )..connectivityMonitor = FlutterConnectivityMonitor();
-
-      final data = await tempClient.dashboard.getDashboardData();
+      final data = await client.dashboard.getDashboardData(
+        clientReportedId: sessionManager.signedInUser?.id,
+      );
       state = DashboardState(
         isLoading: false,
         data: data,
@@ -125,7 +126,9 @@ final dashboardProvider = StateNotifierProvider.autoDispose<DashboardNotifier, D
 /// Contacts list provider
 final contactsProvider = FutureProvider<List<Contact>>((ref) async {
   // Let errors propagate to the UI so we can see them
-  final contacts = await client.dashboard.getContacts();
+  final contacts = await client.dashboard.getContacts(
+    clientReportedId: sessionManager.signedInUser?.id,
+  );
   print('Frontend fetched ${contacts.length} contacts');
   return contacts;
 });
@@ -238,5 +241,8 @@ final chatProvider = StateNotifierProvider.autoDispose<ChatNotifier, ChatState>(
 
 /// Draft email provider
 final draftEmailProvider = FutureProvider.family<String, int>((ref, contactId) async {
-  return await client.recall.generateDraftEmail(contactId);
+  return await client.recall.generateDraftEmail(
+    contactId,
+    clientReportedId: sessionManager.signedInUser?.id,
+  );
 });

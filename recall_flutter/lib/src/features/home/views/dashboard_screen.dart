@@ -74,22 +74,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       if (!status.hasToken) {
         // We are logged in locally but server doesn't have the token (likely due to previous port error)
         if (mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Server connection incomplete. Please sign in again.'),
-              backgroundColor: Colors.orange,
-              duration: Duration(seconds: 5),
-            ),
-          );
-          
-          await Future.delayed(const Duration(seconds: 2));
-           // Force sign out and redirect to login
-           await ref.read(authControllerProvider).signOut();
-           if (mounted) {
-             Navigator.of(context).pushReplacement(
-               MaterialPageRoute(builder: (_) => const SignInScreen()),
-             );
-           }
+           // Just warn, don't logout automatically as it causes loops
+           print('Warning: Server reporting missing token');
         }
       }
     } catch (e) {
@@ -160,6 +146,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 // ============================================================================
 // HOME TAB
 // ============================================================================
+// ============================================================================
+// HOME TAB
+// ============================================================================
 class _HomeTab extends ConsumerWidget {
   final String userFirstName;
   final String? userImageUrl;
@@ -174,7 +163,7 @@ class _HomeTab extends ConsumerWidget {
     final dashboardState = ref.watch(dashboardProvider);
     final isLoading = dashboardState.isLoading;
     final isSyncing = dashboardState.data?.isSyncing ?? false;
-    final showLoadingOverlay = isLoading || isSyncing;
+    final showLoadingOverlay = isLoading && dashboardState.data == null;
 
     return SafeArea(
       child: Stack(
@@ -201,7 +190,10 @@ class _HomeTab extends ConsumerWidget {
                   if (dashboardState.isLoading)
                     const _LoadingState()
                   else if (dashboardState.data != null)
-                    _DashboardContent(data: dashboardState.data!),
+                    _DashboardContent(
+                      data: dashboardState.data!,
+                      onDraftPressed: (contact) => _showDraftComposer(context, ref, contact),
+                    ),
                 ],
               ),
             ),
@@ -226,17 +218,172 @@ class _HomeTab extends ConsumerWidget {
         ],
       ),
     );
-}
   }
 
+  Future<void> _showDraftComposer(BuildContext context, WidgetRef ref, Contact contact) async {
+    // 1. Show Loading
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Generating smart draft with AI...')),
+    );
 
+    try {
+      // 2. Fetch Draft
+      final draftBody = await ref.read(draftEmailProvider(contact.id!).future);
+      
+      if (!context.mounted) return;
+
+      // 3. Open Composer Sheet
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (ctx) => _EmailComposerSheet(
+          contact: contact,
+          initialBody: draftBody,
+        ),
+      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text('Failed to generate draft: $e')),
+        );
+      }
+    }
+  }
+}
 // ============================================================================
-// CONTENT
+// EMAIL COMPOSER SHEET
 // ============================================================================
+class _EmailComposerSheet extends ConsumerStatefulWidget {
+  final Contact contact;
+  final String initialBody;
+
+  const _EmailComposerSheet({required this.contact, required this.initialBody});
+
+  @override
+  ConsumerState<_EmailComposerSheet> createState() => _EmailComposerSheetState();
+}
+
+class _EmailComposerSheetState extends ConsumerState<_EmailComposerSheet> {
+  late TextEditingController _subjectController;
+  late TextEditingController _bodyController;
+  bool _isSending = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _subjectController = TextEditingController(text: 'Long time no see');
+    _bodyController = TextEditingController(text: widget.initialBody);
+  }
+
+  @override
+  void dispose() {
+    _subjectController.dispose();
+    _bodyController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _send() async {
+    setState(() => _isSending = true);
+    final success = await ref.read(dashboardProvider.notifier).sendEmail(
+          widget.contact.email!,
+          _subjectController.text,
+          _bodyController.text,
+        );
+    
+    if (mounted) {
+      setState(() => _isSending = false);
+      if (success) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Email sent successfully!')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to send email.')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.85,
+      padding: const EdgeInsets.all(24),
+      decoration: const BoxDecoration(
+        color: AppColors.surfaceDark,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Draft Email', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+              IconButton(icon: const Icon(Icons.close, color: Colors.white), onPressed: () => Navigator.pop(context)),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Text('To: ${widget.contact.name ?? widget.contact.email}', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _subjectController,
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: Colors.black26,
+              labelText: 'Subject',
+              labelStyle: const TextStyle(color: Colors.white54),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: TextField(
+              controller: _bodyController,
+              style: const TextStyle(color: Colors.white),
+              maxLines: null,
+              expands: true,
+              textAlignVertical: TextAlignVertical.top,
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.black26,
+                labelText: 'Message',
+                labelStyle: const TextStyle(color: Colors.white54),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                alignLabelWithHint: true,
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: ElevatedButton(
+              onPressed: _isSending ? null : _send,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+              child: _isSending 
+                  ? const CircularProgressIndicator(color: Colors.black)
+                  : const Text('Send Email', style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold)),
+            ),
+          ),
+          SizedBox(height: MediaQuery.of(context).viewInsets.bottom), // Keyboard spacer
+        ],
+      ),
+    );
+  }
+}
+
 class _DashboardContent extends StatelessWidget {
   final DashboardData data;
+  final Function(Contact) onDraftPressed;
 
-  const _DashboardContent({required this.data});
+  const _DashboardContent({required this.data, required this.onDraftPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -252,6 +399,7 @@ class _DashboardContent extends StatelessWidget {
               contact: data.nudgeContact!,
               daysSilent: data.nudgeDaysSilent ?? 0,
               lastTopic: data.nudgeLastTopic,
+              onDraftPressed: onDraftPressed,
             ),
           ),
           
@@ -417,11 +565,13 @@ class _DriftingHighlightCard extends StatelessWidget {
   final Contact contact;
   final int daysSilent;
   final String? lastTopic;
+  final Function(Contact) onDraftPressed;
 
   const _DriftingHighlightCard({
     required this.contact,
     required this.daysSilent,
     this.lastTopic,
+    required this.onDraftPressed,
   });
 
   @override
@@ -555,7 +705,7 @@ class _DriftingHighlightCard extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () {},
+              onPressed: () => onDraftPressed(contact),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.black,
@@ -672,7 +822,7 @@ class _ContextCarousel extends StatelessWidget {
           ),
         ),
         SizedBox(
-          height: 180,
+          height: 240, // Increased from 180 to fix overflow
           child: ListView.separated(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             scrollDirection: Axis.horizontal,
@@ -680,8 +830,39 @@ class _ContextCarousel extends StatelessWidget {
             separatorBuilder: (_, __) => const SizedBox(width: 16),
             itemBuilder: (context, index) {
               final item = interactions[index];
-              return Container(
-                width: 280,
+              return GestureDetector(
+                onTap: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      backgroundColor: AppColors.surfaceDark,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          side: BorderSide(color: Colors.white.withOpacity(0.1))),
+                      title: Text(item.contactName, style: const TextStyle(color: Colors.white)),
+                      content: SingleChildScrollView(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.summary,
+                              style: const TextStyle(color: Colors.white70, fontSize: 15, height: 1.5),
+                            ),
+                          ],
+                        ),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Close', style: TextStyle(color: AppColors.primary)),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+                child: Container(
+                  width: 280,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: AppColors.surfaceDark,
@@ -776,7 +957,8 @@ class _ContextCarousel extends StatelessWidget {
                     ),
                   ],
                 ),
-          );
+                ),
+              );
         },
       ),
         ),
@@ -990,11 +1172,9 @@ class _PremiumBottomNav extends StatelessWidget {
 // For now, I'll rely on the design having a central button look.
 // Actually, standard BottomNavigationBar can't easily support the "overflow" button shown in design.
 // I will implement a custom layout. 
-extension on Row {
-  // Hack to insert the mic button in the middle for the custom row above
-  // This is handled by main widget structure in reality.
-}
-
+// ============================================================================
+// EXTENDED UI HELPERS
+// ============================================================================
 class _BottomNavItem extends StatelessWidget {
   final IconData icon;
   final String label;

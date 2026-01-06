@@ -248,19 +248,19 @@ class EndpointDashboard extends _i2.EndpointRef {
   String get name => 'dashboard';
 
   /// Get complete dashboard data
-  _i3.Future<_i5.DashboardData> getDashboardData() =>
+  _i3.Future<_i5.DashboardData> getDashboardData({int? clientReportedId}) =>
       caller.callServerEndpoint<_i5.DashboardData>(
         'dashboard',
         'getDashboardData',
-        {},
+        {'clientReportedId': clientReportedId},
       );
 
   /// Get all contacts for the user
-  _i3.Future<List<_i6.Contact>> getContacts() =>
+  _i3.Future<List<_i6.Contact>> getContacts({int? clientReportedId}) =>
       caller.callServerEndpoint<List<_i6.Contact>>(
         'dashboard',
         'getContacts',
-        {},
+        {'clientReportedId': clientReportedId},
       );
 
   /// Get interactions for a specific contact
@@ -311,13 +311,15 @@ class EndpointDashboard extends _i2.EndpointRef {
   /// Get agenda items for a specific date range
   _i3.Future<List<_i9.AgendaItem>> getAgendaItems(
     DateTime start,
-    DateTime end,
-  ) => caller.callServerEndpoint<List<_i9.AgendaItem>>(
+    DateTime end, {
+    int? clientReportedId,
+  }) => caller.callServerEndpoint<List<_i9.AgendaItem>>(
     'dashboard',
     'getAgendaItems',
     {
       'start': start,
       'end': end,
+      'clientReportedId': clientReportedId,
     },
   );
 }
@@ -414,12 +416,17 @@ class EndpointRecall extends _i2.EndpointRef {
       );
 
   /// Generate AI draft email for a contact using Gemini
-  _i3.Future<String> generateDraftEmail(int contactId) =>
-      caller.callServerEndpoint<String>(
-        'recall',
-        'generateDraftEmail',
-        {'contactId': contactId},
-      );
+  _i3.Future<String> generateDraftEmail(
+    int contactId, {
+    int? clientReportedId,
+  }) => caller.callServerEndpoint<String>(
+    'recall',
+    'generateDraftEmail',
+    {
+      'contactId': contactId,
+      'clientReportedId': clientReportedId,
+    },
+  );
 }
 
 /// This is an example endpoint that returns a greeting message through
