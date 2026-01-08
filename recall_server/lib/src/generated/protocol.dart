@@ -32,7 +32,8 @@ import 'user_config.dart' as _i17;
 import 'package:recall_server/src/generated/contact.dart' as _i18;
 import 'package:recall_server/src/generated/interaction_summary.dart' as _i19;
 import 'package:recall_server/src/generated/agenda_item.dart' as _i20;
-import 'package:recall_server/src/generated/chat_message.dart' as _i21;
+import 'package:recall_server/src/generated/chat_session.dart' as _i21;
+import 'package:recall_server/src/generated/chat_message.dart' as _i22;
 export 'agenda_item.dart';
 export 'chat_message.dart';
 export 'chat_session.dart';
@@ -1033,9 +1034,15 @@ class Protocol extends _i1.SerializationManagerServer {
       return (data as List).map((e) => deserialize<_i20.AgendaItem>(e)).toList()
           as T;
     }
-    if (t == List<_i21.ChatMessage>) {
+    if (t == List<_i21.ChatSession>) {
       return (data as List)
-              .map((e) => deserialize<_i21.ChatMessage>(e))
+              .map((e) => deserialize<_i21.ChatSession>(e))
+              .toList()
+          as T;
+    }
+    if (t == List<_i22.ChatMessage>) {
+      return (data as List)
+              .map((e) => deserialize<_i22.ChatMessage>(e))
               .toList()
           as T;
     }

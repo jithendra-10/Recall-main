@@ -6,6 +6,9 @@ import 'package:serverpod_flutter/serverpod_flutter.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:serverpod_auth_google_flutter/serverpod_auth_google_flutter.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:recall_flutter/src/services/cache_service.dart';
+import 'package:recall_flutter/src/services/offline_queue_service.dart';
 
 import 'package:recall_flutter/src/features/auth/views/splash_screen.dart';
 
@@ -20,6 +23,9 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
 
+  // Initialize Offline Services
+  await CacheService().init();
+  await OfflineQueueService().init(); 
 
   // Initialize client immediately without waiting for server
   final serverUrl = 'http://$serverIpAddress:8083/';
@@ -35,6 +41,24 @@ void main() async {
 
   // Start app immediately - don't wait for session initialization
   runApp(const ProviderScope(child: MyApp()));
+
+  // Setup Connectivity Listener for Offline Queue
+  Connectivity().onConnectivityChanged.listen((result) {
+    // Check if result is NOT none (basic check, can be improved)
+    // Note: connectivity_plus 6.0 returns List<ConnectivityResult>, 5.0 returns single. 
+    // Assuming 5.0 behavior based on ^5.0.2 constraint, but handling safe.
+    bool isConnected = false;
+    if (result is List) {
+       isConnected = (result as List).any((r) => r != ConnectivityResult.none);
+    } else {
+       isConnected = result != ConnectivityResult.none;
+    }
+
+    if (isConnected) {
+      print("Recall: Network restored. Processing offline queue...");
+      OfflineQueueService().processQueue(client);
+    }
+  });
 
   // Initialize session in background (non-blocking)
   _initializeSessionInBackground();

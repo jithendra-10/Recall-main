@@ -25,8 +25,9 @@ email:
 googleAuth:
   - exchangeCode:
 recall:
+  - getChatSessions:
+  - getChatMessages:
   - askRecall:
-  - getChatHistory:
   - processVoiceNote:
   - generateDraftEmail:
 greeting:

@@ -1,22 +1,34 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:serverpod/serverpod.dart';
 import 'package:dotenv/dotenv.dart';
 
-/// Gemini AI Service for summarization and embeddings
+/// AI Service supporting Gemini and Groq (Llama 3)
 class GeminiService {
   static final _env = DotEnv(includePlatformEnvironment: true)..load();
-  static String get _apiKey {
-    final key = _env['GEMINI_API_KEY'];
-    if (key == null || key.isEmpty) {
-      throw Exception('GEMINI_API_KEY not found in .env');
-    }
-    return key;
-  }
-  static const String _baseUrl = 'https://generativelanguage.googleapis.com/v1beta';
   
+  // Gemini Configuration
+  static String? get _geminiKey => _env['GEMINI_API_KEY'];
+  static const String _geminiBaseUrl = 'https://generativelanguage.googleapis.com/v1beta';
+  
+  // Groq Configuration
+  static String? get _groqKey => _env['GROQ_API_KEY'];
+  static const String _groqBaseUrl = 'https://api.groq.com/openai/v1/chat/completions';
+  
+  // Helper to determine active provider for fast chat
+  static bool get _useGroq => _groqKey != null && _groqKey!.isNotEmpty;
+
+  // --------------------------------------------------------------------------------------
+  // EMAIL ANALYSIS (Gemini Default)
+  // --------------------------------------------------------------------------------------
+
   /// Analyze email content using strict logic and return structured data
   static Future<Map<String, dynamic>?> analyzeEmail(String content, String sender, String recipient, bool isSent, DateTime emailDate) async {
+    // Currently defaulting to Gemini as it handles complex instruction well.
+    // Can be ported to Llama 3 on Groq if needed.
+    return _analyzeEmailGemini(content, sender, recipient, isSent, emailDate);
+  }
+
+  static Future<Map<String, dynamic>?> _analyzeEmailGemini(String content, String sender, String recipient, bool isSent, DateTime emailDate) async {
     final prompt = '''You are the intelligence layer of an application that reads a user's Gmail in real time.
 Your task is to process raw Gmail messages and convert them into meaningful, structured memory for the app.
 
@@ -78,8 +90,14 @@ Return a valid JSON object. Do not include markdown code blocks.
 ''';
 
     try {
+      final apiKey = _geminiKey;
+      if (apiKey == null) {
+          print('Gemini API Key missing for Email Analysis');
+          return null;
+      }
+      
       final response = await http.post(
-        Uri.parse('$_baseUrl/models/gemini-pro:generateContent?key=$_apiKey'),
+        Uri.parse('$_geminiBaseUrl/models/gemini-2.0-flash-lite-preview-02-05:generateContent?key=$apiKey'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'contents': [
@@ -90,7 +108,7 @@ Return a valid JSON object. Do not include markdown code blocks.
             }
           ],
           'generationConfig': {
-            'temperature': 0.1, // Lower temperature for stricter adherence
+            'temperature': 0.1,
             'maxOutputTokens': 500,
             'responseMimeType': 'application/json',
           }
@@ -103,7 +121,6 @@ Return a valid JSON object. Do not include markdown code blocks.
         
         if (text != null) {
           try {
-            // Clean markdown if present (though responseMimeType should prevent it)
             final cleanText = text.replaceAll('```json', '').replaceAll('```', '').trim();
             final jsonResult = jsonDecode(cleanText);
             
@@ -127,41 +144,23 @@ Return a valid JSON object. Do not include markdown code blocks.
     return null;
   }
 
-  /// Generate vector embedding for text
-  static Future<List<double>> generateEmbedding(String text) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/models/text-embedding-004:embedContent?key=$_apiKey'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'model': 'models/text-embedding-004',
-          'content': {
-            'parts': [
-              {'text': text}
-            ]
-          }
-        }),
-      );
+  // --------------------------------------------------------------------------------------
+  // DRAFT EMAIL (Gemini Default)
+  // --------------------------------------------------------------------------------------
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final embeddings = data['embedding']?['values'] as List<dynamic>?;
-        if (embeddings != null) {
-          return embeddings.map((e) => (e as num).toDouble()).toList();
-        }
-      } else {
-        print('Gemini embedding error: ${response.statusCode} - ${response.body}');
+  static Future<String> generateDraftEmail({
+    required String contactName,
+    required String lastTopic,
+    required int daysSilent,
+    required List<String> recentInteractions,
+  }) async {
+      if (_useGroq) {
+        return _generateDraftGroq(contactName: contactName, lastTopic: lastTopic, daysSilent: daysSilent, recentInteractions: recentInteractions);
       }
-    } catch (e) {
-      print('Gemini embedding error: $e');
-    }
-    
-    // Return zero vector as fallback (768 dimensions)
-    return List.filled(768, 0.0);
+      return _generateDraftGemini(contactName: contactName, lastTopic: lastTopic, daysSilent: daysSilent, recentInteractions: recentInteractions);
   }
 
-  /// Generate a draft email based on context
-  static Future<String> generateDraftEmail({
+  static Future<String> _generateDraftGroq({
     required String contactName,
     required String lastTopic,
     required int daysSilent,
@@ -169,36 +168,111 @@ Return a valid JSON object. Do not include markdown code blocks.
   }) async {
     final context = recentInteractions.take(3).join('\n');
     
-    final prompt = '''Generate a friendly, professional catch-up email to reconnect with someone. Keep it natural and personal.
+    final systemPrompt = '''You are an expert personal communication assistant. Your goal is to draft a PERFECTLY CONTEXTUAL email.
+    
+    TASK:
+    1. CLASSIFY THE RECIPIENT:
+       - Is this a "SERVICE/COMPANY"? (Formal, direct)
+       - Is this a "RECRUITER/PROFESSIONAL"? (Polite, professional)
+       - Is this a "PERSONAL FRIEND/FAMILY"? (Warm, casual)
+       
+    2. DETERMINE THE GOAL based on "Last Topic".
+       
+    3. GENERATE THE DRAFT (Strict Rules):
+       - IF SERVICE/COMPANY: Write a formal inquiry.
+       - IF PROFESSIONAL: Write a polite follow-up.
+       - IF PERSONAL: Write a casual catch-up.
+    
+    4. OUTPUT:
+       - Return ONLY the email body text. No "Subject:" line, no explanations.
+    ''';
 
-Contact: $contactName
-Days since last contact: $daysSilent days
-Last topic discussed: $lastTopic
-Recent conversation snippets:
-$context
-
-Write a short email (3-4 sentences) that:
-1. References something specific from your history
-2. Feels genuine, not templated
-3. Has a clear call-to-action (coffee, call, etc.)
-
-Email:''';
+    final userContent = '''
+    Contact: $contactName
+    Last Topic: $lastTopic
+    Days Silent: $daysSilent
+    History:
+    $context
+    ''';
 
     try {
       final response = await http.post(
-        Uri.parse('$_baseUrl/models/gemini-pro:generateContent?key=$_apiKey'),
+        Uri.parse(_groqBaseUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_groqKey',
+        },
+        body: jsonEncode({
+          'model': 'llama-3.3-70b-versatile',
+          'messages': [
+            {'role': 'system', 'content': systemPrompt},
+            {'role': 'user', 'content': userContent}
+          ],
+          'temperature': 0.4,
+          'max_completion_tokens': 400,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final text = data['choices']?[0]?['message']?['content'];
+        return text?.trim() ?? _fallbackDraft(contactName, lastTopic);
+      }
+    } catch (e) {
+      print('Groq draft error: $e');
+    }
+    return _fallbackDraft(contactName, lastTopic);
+  }
+
+  static Future<String> _generateDraftGemini({
+    required String contactName,
+    required String lastTopic,
+    required int daysSilent,
+    required List<String> recentInteractions,
+  }) async {
+    final context = recentInteractions.take(3).join('\n');
+    
+    final prompt = '''You are an expert personal communication assistant. Your goal is to draft a PERFECTLY CONTEXTUAL email.
+    
+    context:
+    Contact Name: $contactName
+    Last Topic: $lastTopic
+    Days Silent: $daysSilent
+    Interaction History Snippets:
+    $context
+    
+    TASK:
+    1. CLASSIFY THE RECIPIENT:
+       - Is this a "SERVICE/COMPANY" (e.g., Amazon, Bank, LinkedIn, Newsletter, Support Department)?
+       - Is this a "RECRUITER/PROFESSIONAL" (e.g., Hiring Manager, Colleague, Client)?
+       - Is this a "PERSONAL FRIEND/FAMILY"?
+       
+    2. DETERMINE THE GOAL based on "$lastTopic":
+       - If usage implies a transactional update (Order #, Invoice, Reset Password), the draft should be a generic "Thank you" or "Issue Resolved".
+       - If usage implies a lost connection, the draft should be a reconnection.
+       
+    3. GENERATE THE DRAFT (Strict Rules):
+       - IF SERVICE/COMPANY: Write a formal, direct inquiry or simple acknowledgment. DO NOT ask for coffee. DO NOT say "Long time no see". Example: "Hello, regarding the recent update on $lastTopic, could you clarify..."
+       - IF PROFESSIONAL: Write a polite, professional follow-up. "Hi $contactName, hope you are well. Following up on $lastTopic..."
+       - IF PERSONAL: Write a warm, casual catch-up. "Hey $contactName! Been a while ($daysSilent days). Saw something about $lastTopic and thought of you. Coffee soon?"
+    
+    4. OUTPUT:
+       - Return ONLY the email body text. No "Subject:" line, no explanations.
+       - Verify: If recipient is Amazon/Service, ensure NO "quick call" invites.
+    ''';
+
+    try {
+      final apiKey = _geminiKey;
+      if (apiKey == null) return _fallbackDraft(contactName, lastTopic);
+
+      final response = await http.post(
+        Uri.parse('$_geminiBaseUrl/models/gemini-2.0-flash-lite-preview-02-05:generateContent?key=$apiKey'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'contents': [
-            {
-              'parts': [
-                {'text': prompt}
-              ]
-            }
-          ],
+          'contents': [{'parts': [{'text': prompt}]}],
           'generationConfig': {
-            'temperature': 0.7,
-            'maxOutputTokens': 300,
+            'temperature': 0.4, 
+            'maxOutputTokens': 400,
           }
         }),
       );
@@ -225,29 +299,138 @@ Would love to catch up soon - are you free for a quick coffee or call this week?
 Best regards''';
   }
 
-  /// Generate RAG response from retrieved context
+  // --------------------------------------------------------------------------------------
+  // EMBEDDINGS (Gemini Only - for now)
+  // --------------------------------------------------------------------------------------
+
+  static Future<List<double>> generateEmbedding(String text) async {
+    try {
+      final apiKey = _geminiKey;
+      if (apiKey == null) return List.filled(768, 0.0);
+
+      final response = await http.post(
+        Uri.parse('$_geminiBaseUrl/models/text-embedding-004:embedContent?key=$apiKey'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'model': 'models/text-embedding-004',
+          'content': {
+            'parts': [
+              {'text': text}
+            ]
+          }
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final embeddings = data['embedding']?['values'] as List<dynamic>?;
+        if (embeddings != null) {
+          return embeddings.map((e) => (e as num).toDouble()).toList();
+        }
+      } else {
+        print('Gemini embedding error: ${response.statusCode} - ${response.body}');
+      }
+    } catch (e) {
+      print('Gemini embedding error: $e');
+    }
+    
+    // Return zero vector as fallback
+    return List.filled(768, 0.0);
+  }
+
+  // --------------------------------------------------------------------------------------
+  // RAG RESPONSE (Hybrid: Groq > Gemini)
+  // --------------------------------------------------------------------------------------
+
   static Future<String> generateRagResponse({
     required String query,
     required List<String> retrievedContexts,
   }) async {
+    if (_useGroq) {
+      return _generateRagGroq(query, retrievedContexts);
+    }
+    return _generateRagGemini(query, retrievedContexts);
+  }
+
+  static Future<String> _generateRagGroq(String query, List<String> retrievedContexts) async {
+    final context = retrievedContexts.isEmpty 
+        ? "No recent context found." 
+        : retrievedContexts.join('\n\n');
+
+    final systemPrompt = '''You are 'Recall', a sophisticated, private, and intelligent personal relationship butler.
+    
+CONTEXT:
+$context
+
+USER QUERY: $query
+
+RULES:
+1. Be concise, polite, and helpful (Butler Persona).
+2. Answer based on CONTEXT. If unknown, say so.
+3. Never reveal secrets.
+''';
+
+    try {
+      final response = await http.post(
+        Uri.parse(_groqBaseUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_groqKey',
+        },
+        body: jsonEncode({
+          'model': 'llama-3.3-70b-versatile',
+          'messages': [
+            {'role': 'system', 'content': systemPrompt},
+            {'role': 'user', 'content': query}
+          ],
+          'temperature': 0.3,
+          'max_completion_tokens': 500,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['choices'][0]['message']['content'] ?? "Sorry, no response from Groq.";
+      } else {
+        return "Groq API Error: ${response.statusCode} - ${response.body}";
+      }
+    } catch (e) {
+      return "Groq Error: $e";
+    }
+  }
+
+  static Future<String> _generateRagGemini(String query, List<String> retrievedContexts) async {
     if (retrievedContexts.isEmpty) {
       return "I don't have any relevant information about that in your communication history.";
     }
 
     final context = retrievedContexts.join('\n\n');
     
-    final prompt = '''You are a personal relationship assistant with access to the user's email history. Answer the question based ONLY on the provided context. If the context doesn't contain enough information, say so honestly.
+    final prompt = '''You are 'Recall', a sophisticated, private, and intelligent personal relationship butler. Your job is to help the user manage their professional network and remember key details from their life.
 
-Context from email history:
+YOUR BEHAVIORAL RULES:
+1. The Persona: You are polite, professional, and concise. Speak like a high-end butler.
+2. Handling Greetings: If the user says "Hi", "Hello", or "Good Morning", respond warmly and ask how you can assist.
+3. Using Context:
+   - If the Context contains the answer, summarize it clearly.
+   - If the Context is empty or irrelevant, simply state: "I don't recall seeing that in your recent emails."
+4. Privacy & Security (CRITICAL):
+   - You are a Vault. NEVER reveal passwords, API keys, bank PINs, or highly sensitive secrets.
+5. Agency: If the user asks you to "Draft an email" or "Remind me", acknowledge the request.
+
+Refrieved Context:
 $context
 
-User question: $query
+Current User Query: $query
 
-Answer concisely and helpfully:''';
+Answer as the Butler:''';
 
     try {
+      final apiKey = _geminiKey;
+      if (apiKey == null) return "Error: GEMINI_API_KEY missing.";
+
       final response = await http.post(
-        Uri.parse('$_baseUrl/models/gemini-pro:generateContent?key=$_apiKey'),
+        Uri.parse('$_geminiBaseUrl/models/gemini-2.0-flash-lite-preview-02-05:generateContent?key=$apiKey'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'contents': [
@@ -268,16 +451,65 @@ Answer concisely and helpfully:''';
         final data = jsonDecode(response.body);
         final text = data['candidates']?[0]?['content']?['parts']?[0]?['text'];
         return text?.trim() ?? 'Sorry, I could not generate a response.';
+      } else {
+        return 'Gemini API Error: ${response.statusCode} - ${response.body}';
       }
     } catch (e) {
       print('Gemini RAG error: $e');
+      return 'Sorry, I encountered an error processing your request: $e';
     }
-    
-    return 'Sorry, I encountered an error processing your request.';
   }
 
-  /// Analyze a voice note transcript to extract entities and context
+  // --------------------------------------------------------------------------------------
+  // VOICE NOTE ANALYSIS (Hybrid: Groq > Gemini)
+  // --------------------------------------------------------------------------------------
+
   static Future<Map<String, dynamic>?> analyzeVoiceNote(String transcript, DateTime now) async {
+    if (_useGroq) {
+      return _analyzeVoiceNoteGroq(transcript, now);
+    }
+    return _analyzeVoiceNoteGemini(transcript, now);
+  }
+
+  static Future<Map<String, dynamic>?> _analyzeVoiceNoteGroq(String transcript, DateTime now) async {
+    final systemPrompt = '''You are an AI assistant for Recall. Analyze the transcript.
+Context Time: ${now.toIso8601String()}
+Output strict JSON format:
+{
+  "summary": "string",
+  "contacts": [{"name": "string", "is_new": bool, "context": "string"}],
+  "agenda_items": [{"title": "string", "start_time": "ISO8601", "priority": "high/normal"}]
+}''';
+
+    try {
+       final response = await http.post(
+        Uri.parse(_groqBaseUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_groqKey',
+        },
+        body: jsonEncode({
+          'model': 'llama-3.3-70b-versatile',
+          'messages': [
+            {'role': 'system', 'content': systemPrompt},
+            {'role': 'user', 'content': transcript}
+          ],
+          'response_format': {'type': 'json_object'},
+        }),
+      );
+      
+      if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          final content = data['choices'][0]['message']['content'];
+          return jsonDecode(content);
+      }
+    } catch (e) {
+        print("Groq Voice Error: $e");
+    }
+    return null;
+  }
+
+  static Future<Map<String, dynamic>?> _analyzeVoiceNoteGemini(String transcript, DateTime now) async {
     final prompt = ''' You are an AI assistant for a relationship management app called Recall.
 Your task is to analyze a raw voice note transcript from a user and extract meaningful actions and entities.
 
@@ -318,8 +550,11 @@ Return valid JSON only.
 ''';
 
     try {
+      final apiKey = _geminiKey;
+      if (apiKey == null) return null;
+
       final response = await http.post(
-        Uri.parse('$_baseUrl/models/gemini-pro:generateContent?key=$_apiKey'),
+        Uri.parse('$_geminiBaseUrl/models/gemini-2.0-flash-lite-preview-02-05:generateContent?key=$apiKey'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'contents': [
@@ -339,12 +574,11 @@ Return valid JSON only.
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final text = data['candidates'][0]['content']['parts'][0]['text'];
-        // Clean markdown if present
         final cleanJson = text.replaceAll('```json', '').replaceAll('```', '').trim();
         return jsonDecode(cleanJson);
       } else {
         print('Gemini API Error: ${response.body}');
-        return null; // Handle error gracefully
+        return null;
       }
     } catch (e) {
       print('Gemini Service Error: $e');

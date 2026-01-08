@@ -141,41 +141,44 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
 
               // Notifications List
               Expanded(
-                child: contactsAsync.when(
-                  loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
-                  error: (err, stack) => Center(child: Text('Error loading intel: $err')),
-                  data: (contacts) {
-                    final notifications = _generateNotifications(contacts, dashboardState.data);
+                child: Builder(builder: (context) {
+                   if (contactsAsync.isLoading && contactsAsync.contacts.isEmpty) {
+                      return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+                   }
+                   if (contactsAsync.contacts.isEmpty && contactsAsync.error != null) {
+                      return Center(child: Text('Error loading intel: ${contactsAsync.error}'));
+                   }
+                   
+                   final notifications = _generateNotifications(contactsAsync.contacts, dashboardState.data);
                     
-                     if (notifications.isEmpty) {
-                        return Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.notifications_off_outlined, size: 60, color: Colors.white.withOpacity(0.2)),
-                              const SizedBox(height: 16),
-                              const Text('No new intel', style: TextStyle(color: Colors.white54)),
-                            ],
-                          ),
-                        );
-                     }
+                   if (notifications.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.notifications_off_outlined, size: 60, color: Colors.white.withOpacity(0.2)),
+                            const SizedBox(height: 16),
+                            const Text('No new intel', style: TextStyle(color: Colors.white54)),
+                          ],
+                        ),
+                      );
+                   }
 
-                    return ListView.separated(
-                      padding: const EdgeInsets.all(24),
-                      itemCount: notifications.length + 1, // +1 for "End of Stream"
-                      separatorBuilder: (_, __) => const SizedBox(height: 16),
-                      itemBuilder: (context, index) {
-                        if (index == notifications.length) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 32),
-                            child: Center(child: Text('END OF STREAM', style: TextStyle(color: Colors.white.withOpacity(0.2), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 2))),
-                          );
-                        }
-                        return _NotificationCard(item: notifications[index]);
-                      },
-                    );
-                  },
-                ),
+                   return ListView.separated(
+                     padding: const EdgeInsets.all(24),
+                     itemCount: notifications.length + 1, // +1 for "End of Stream"
+                     separatorBuilder: (_, __) => const SizedBox(height: 16),
+                     itemBuilder: (context, index) {
+                       if (index == notifications.length) {
+                         return Padding(
+                           padding: const EdgeInsets.symmetric(vertical: 32),
+                           child: Center(child: Text('END OF STREAM', style: TextStyle(color: Colors.white.withOpacity(0.2), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 2))),
+                         );
+                       }
+                       return _NotificationCard(item: notifications[index]);
+                     },
+                   );
+                }),
               ),
             ],
           ),

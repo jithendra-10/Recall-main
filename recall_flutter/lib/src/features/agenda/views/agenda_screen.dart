@@ -5,6 +5,8 @@ import 'package:recall_client/recall_client.dart';
 import 'package:recall_flutter/main.dart'; // For client
 import 'package:recall_flutter/src/core/app_colors.dart';
 
+import '../providers/agenda_provider.dart';
+
 class AgendaScreen extends ConsumerStatefulWidget {
   const AgendaScreen({super.key});
 
@@ -14,30 +16,11 @@ class AgendaScreen extends ConsumerStatefulWidget {
 
 class _AgendaScreenState extends ConsumerState<AgendaScreen> {
   DateTime _selectedDate = DateTime.now();
-  late Future<List<AgendaItem>> _agendaFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadAgenda();
-  }
-
-  void _loadAgenda() {
-    // Start of day
-    final start = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day).toUtc();
-    // End of day
-    final end = start.add(const Duration(days: 1)).subtract(const Duration(milliseconds: 1));
-
-    setState(() {
-      _agendaFuture = client.dashboard.getAgendaItems(start, end);
-    });
-  }
 
   void _changeDate(int offset) {
     setState(() {
       _selectedDate = DateTime.now().add(Duration(days: offset));
     });
-    _loadAgenda();
   }
 
   @override
@@ -108,36 +91,7 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
 
             // Content
             Expanded(
-              child: FutureBuilder<List<AgendaItem>>(
-                future: _agendaFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator(color: AppColors.primary));
-                  }
-                  
-                  if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.red)));
-                  }
-
-                  final items = snapshot.data ?? [];
-
-                  if (items.isEmpty) {
-                    return _EmptyState();
-                  }
-
-                  return ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                    itemCount: items.length,
-                    itemBuilder: (context, index) {
-                      return _TimelineItem(
-                        item: items[index],
-                        isFirst: index == 0,
-                        isLast: index == items.length - 1,
-                      );
-                    },
-                  );
-                },
-              ),
+              child: _AgendaContent(selectedDate: _selectedDate),
             ),
           ],
         ),
@@ -508,20 +462,105 @@ class _AvatarGroup extends StatelessWidget {
   }
 }
 
+class _AgendaContent extends ConsumerWidget {
+  final DateTime selectedDate;
+
+  const _AgendaContent({required this.selectedDate});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Use the provider for the specific date
+    final state = ref.watch(agendaProvider(selectedDate));
+    final items = state.items;
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        await ref.read(agendaProvider(selectedDate).notifier).refresh();
+      },
+      color: AppColors.primary,
+      backgroundColor: AppColors.surfaceDark,
+      child: Stack(
+        children: [
+          if (state.isLoading && items.isEmpty)
+             const Center(child: CircularProgressIndicator(color: AppColors.primary))
+          else if (state.error != null && items.isEmpty)
+             _ErrorState(error: state.error!)
+          else if (items.isEmpty)
+             _EmptyState()
+          else
+            ListView.builder(
+              physics: const AlwaysScrollableScrollPhysics(), // Needed for RefreshIndicator
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              itemCount: items.length,
+              itemBuilder: (context, index) {
+                return _TimelineItem(
+                  item: items[index],
+                  isFirst: index == 0,
+                  isLast: index == items.length - 1,
+                );
+              },
+            ),
+            
+          // Show subtle loading if refreshing but we have data
+          if (state.isLoading && items.isNotEmpty)
+             const Positioned(
+               top: 0,
+               left: 0,
+               right: 0,
+               child: LinearProgressIndicator(color: AppColors.primary, backgroundColor: Colors.transparent, minHeight: 2),
+             ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ErrorState extends StatelessWidget {
+  final String error;
+  const _ErrorState({required this.error});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.cloud_off, size: 48, color: Colors.grey),
+            const SizedBox(height: 16),
+            Text(
+              error,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(onPressed: () {}, child: const Text("Retry")) // Logic handled by wrapper
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.event_busy, size: 64, color: Colors.white.withOpacity(0.1)),
-          const SizedBox(height: 16),
-          Text(
-            'No agenda items found',
-            style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 16),
-          ),
-        ],
+      child: SingleChildScrollView( // Allow pull to refresh on empty
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.event_busy, size: 64, color: Colors.white.withOpacity(0.1)),
+            const SizedBox(height: 16),
+            Text(
+              'No agenda items found',
+              style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 16),
+            ),
+            const SizedBox(height: 200), // Push up
+          ],
+        ),
       ),
     );
   }

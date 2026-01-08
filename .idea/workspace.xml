@@ -5,18 +5,26 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="0ed09511-0c48-449e-a072-7547ceac86e6" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Dart_Packages.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Dart_Packages.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/recall.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/recall.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/recall_client/lib/src/protocol/client.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_client/lib/src/protocol/client.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_client/lib/src/protocol/protocol.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_client/lib/src/protocol/protocol.dart" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/recall_flutter/android/app/src/main/AndroidManifest.xml" beforeDir="false" afterPath="$PROJECT_DIR$/recall_flutter/android/app/src/main/AndroidManifest.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/recall_flutter/lib/src/features/auth/views/setup_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_flutter/lib/src/features/auth/views/setup_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/recall_flutter/lib/src/features/auth/views/sign_in_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_flutter/lib/src/features/auth/views/sign_in_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_flutter/lib/main.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_flutter/lib/main.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_flutter/lib/src/features/agenda/views/agenda_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_flutter/lib/src/features/agenda/views/agenda_screen.dart" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/recall_flutter/lib/src/features/home/providers/dashboard_provider.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_flutter/lib/src/features/home/providers/dashboard_provider.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_flutter/lib/src/features/home/views/ask_recall_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_flutter/lib/src/features/home/views/ask_recall_screen.dart" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/recall_flutter/lib/src/features/home/views/dashboard_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_flutter/lib/src/features/home/views/dashboard_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/recall_server/lib/server.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/lib/server.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/recall_server/lib/src/endpoints/dashboard_endpoint.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/lib/src/endpoints/dashboard_endpoint.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_flutter/lib/src/features/network/views/network_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_flutter/lib/src/features/network/views/network_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_flutter/lib/src/features/notifications/views/notification_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_flutter/lib/src/features/notifications/views/notification_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_flutter/pubspec.lock" beforeDir="false" afterPath="$PROJECT_DIR$/recall_flutter/pubspec.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_flutter/pubspec.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/recall_flutter/pubspec.yaml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/recall_server/lib/src/endpoints/recall_endpoint.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/lib/src/endpoints/recall_endpoint.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/recall_server/lib/src/future_calls/gmail_sync_future_call.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/lib/src/future_calls/gmail_sync_future_call.dart" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/recall_server/lib/src/generated/endpoints.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/lib/src/generated/endpoints.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/lib/src/generated/protocol.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/lib/src/generated/protocol.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recall_server/lib/src/generated/protocol.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/lib/src/generated/protocol.yaml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/recall_server/lib/src/services/gemini_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/lib/src/services/gemini_service.dart" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/recall_server/test/integration/test_tools/serverpod_test_tools.dart" beforeDir="false" afterPath="$PROJECT_DIR$/recall_server/test/integration/test_tools/serverpod_test_tools.dart" afterDir="false" />
     </list>

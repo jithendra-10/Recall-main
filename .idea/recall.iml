@@ -84,6 +84,18 @@
       <excludeFolder url="file://$MODULE_DIR$/recall_server/.dart_tool" />
       <excludeFolder url="file://$MODULE_DIR$/recall_server/.pub" />
       <excludeFolder url="file://$MODULE_DIR$/recall_server/build" />
+      <excludeFolder url="file://$MODULE_DIR$/recall_flutter/windows/flutter/ephemeral/.plugin_symlinks/permission_handler_windows/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/recall_flutter/windows/flutter/ephemeral/.plugin_symlinks/permission_handler_windows/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/recall_flutter/windows/flutter/ephemeral/.plugin_symlinks/permission_handler_windows/build" />
+      <excludeFolder url="file://$MODULE_DIR$/recall_flutter/windows/flutter/ephemeral/.plugin_symlinks/permission_handler_windows/example/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/recall_flutter/windows/flutter/ephemeral/.plugin_symlinks/permission_handler_windows/example/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/recall_flutter/windows/flutter/ephemeral/.plugin_symlinks/permission_handler_windows/example/build" />
+      <excludeFolder url="file://$MODULE_DIR$/recall_flutter/windows/flutter/ephemeral/.plugin_symlinks/speech_to_text_windows/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/recall_flutter/windows/flutter/ephemeral/.plugin_symlinks/speech_to_text_windows/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/recall_flutter/windows/flutter/ephemeral/.plugin_symlinks/speech_to_text_windows/build" />
+      <excludeFolder url="file://$MODULE_DIR$/recall_flutter/windows/flutter/ephemeral/.plugin_symlinks/speech_to_text_windows/example/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/recall_flutter/windows/flutter/ephemeral/.plugin_symlinks/speech_to_text_windows/example/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/recall_flutter/windows/flutter/ephemeral/.plugin_symlinks/speech_to_text_windows/example/build" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

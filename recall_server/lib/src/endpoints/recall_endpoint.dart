@@ -9,21 +9,38 @@ class RecallEndpoint extends Endpoint {
   @override
   bool get requireLogin => false;
 
-  /// Ask RECALL - RAG-powered question answering with Gemini
-  Future<ChatMessage> askRecall(Session session, String query) async {
-    // 1. Rate Limiting
-    final clientIp = session.authenticated?.userIdentifier ?? 'unauthenticated';
-    if (!RateLimiter.isAllowed(clientIp, limit: 10, window: const Duration(minutes: 1))) {
-       session.log('Rate limit exceeded for $clientIp', level: LogLevel.warning);
-       return ChatMessage(
-         chatSessionId: 0, 
-         ownerId: 0, 
-         role: 'system', 
-         content: 'Rate limit exceeded. Please wait a moment.', 
-         timestamp: DateTime.now().toUtc()
-       );
-    }
+  /// Get list of chat sessions for the user
+  Future<List<ChatSession>> getChatSessions(Session session, {int limit = 20}) async {
+    final userIdentifier = session.authenticated?.userIdentifier;
+    if (userIdentifier == null) return [];
+    final userId = int.parse(userIdentifier);
 
+    return ChatSession.db.find(
+      session,
+      where: (t) => t.ownerId.equals(userId),
+      orderBy: (t) => t.updatedAt,
+      orderDescending: true,
+      limit: limit,
+    );
+  }
+
+  /// Get messages for a specific session
+  Future<List<ChatMessage>> getChatMessages(Session session, {required int chatSessionId, int limit = 50}) async {
+    final userIdentifier = session.authenticated?.userIdentifier;
+    if (userIdentifier == null) return [];
+    final userId = int.parse(userIdentifier);
+
+    return ChatMessage.db.find(
+      session,
+      where: (t) => t.chatSessionId.equals(chatSessionId) & t.ownerId.equals(userId),
+      orderBy: (t) => t.timestamp,
+      orderDescending: false, // Oldest first
+      limit: limit,
+    );
+  }
+
+  /// Ask RECALL - RAG-powered question answering with Gemini
+  Future<ChatMessage> askRecall(Session session, String query, {int? chatSessionId}) async {
     // 2. Input Validation
     try {
       InputValidator.validateQuery(query);
@@ -38,37 +55,39 @@ class RecallEndpoint extends Endpoint {
     }
 
     try {
-      // Enforce authentication
+      // Enforce authentication (with Dev Fallback)
+      int userId;
       final userIdentifier = session.authenticated?.userIdentifier;
-      if (userIdentifier == null) {
-        return ChatMessage(
-          chatSessionId: 0,
-          ownerId: 0,
-          role: 'system',
-          content: 'You must be signed in to ask Recall.',
-          timestamp: DateTime.now().toUtc(),
-        );
+      if (userIdentifier != null) {
+        userId = int.parse(userIdentifier);
+      } else {
+        session.log('WARNING: askRecall called without auth. Defaulting to userId=1 for dev/demo.', level: LogLevel.warning);
+        userId = 1; 
       }
-      final userId = int.parse(userIdentifier);
 
-      session.log('Ask RECALL query: $query', level: LogLevel.info);
+      session.log('Ask RECALL query: $query (Session: $chatSessionId)', level: LogLevel.info);
 
-      // 0. Get or Create Session (Simplified: Single session for now)
-      var sessionObj = await ChatSession.db.findFirstRow(
-        session,
-        where: (t) => t.ownerId.equals(userId),
-        orderBy: (t) => t.updatedAt,
-        orderDescending: true,
-      );
-
+      // 0. Get or Create Session
+      ChatSession? sessionObj;
+      
+      if (chatSessionId != null) {
+        sessionObj = await ChatSession.db.findById(session, chatSessionId);
+      }
+      
       if (sessionObj == null) {
-        sessionObj = ChatSession(
+         sessionObj = ChatSession(
           ownerId: userId,
-          title: 'General Chat', // Could dynamically title based on first query
+          title: _generateTitle(query), 
           createdAt: DateTime.now().toUtc(),
           updatedAt: DateTime.now().toUtc(),
         );
         sessionObj = await ChatSession.db.insertRow(session, sessionObj);
+      } else {
+        // Update title if it's the generic one and this is early
+        if (sessionObj.title == 'General Chat' || sessionObj.title == 'New Chat' || sessionObj.title == 'Chat') {
+           sessionObj.title = _generateTitle(query);
+           await ChatSession.db.updateRow(session, sessionObj);
+        }
       }
       
       final sessionId = sessionObj.id!;
@@ -85,84 +104,87 @@ class RecallEndpoint extends Endpoint {
         ),
       );
 
-      // 1b. Generate Embedding for the query
-      final queryEmbedding = await GeminiService.generateEmbedding(query);
+      // --- BUTLER LOGIC START ---
+
+      // 2. Greeting Check
+      final greetings = ['hi', 'hello', 'hey', 'good morning', 'good afternoon', 'good evening'];
+      final isGreeting = greetings.any((w) => query.toLowerCase().startsWith(w)) && query.length < 20;
+
+      List<String> contextList = [];
+      List<String> sources = [];
+
+      // 3. Gather Context
       
-      // 2. Vector Search using Raw SQL
-      // We search for IDs first, ordered by distance
-      final embeddingString = '[${queryEmbedding.join(',')}]';
-      final querySql = '''
-        SELECT "id" 
-        FROM "recall_interaction" 
-        WHERE "ownerId" = $userId 
-        ORDER BY "embedding" <=> '$embeddingString' 
-        LIMIT 10
-      ''';
-      
-      final result = await session.db.unsafeQuery(querySql);
-      
-      final ids = result.map((row) => row.first as int).toList();
-      
-      // 2b. Fetch full objects with relations
-      var interactions = <Interaction>[];
-      if (ids.isNotEmpty) {
-        final unsorted = await Interaction.db.find(
-          session,
-          where: (t) => t.id.inSet(ids.toSet()),
-          include: Interaction.include(contact: Contact.include()),
-        );
-        
-        // 2c. Restore order from vector search
-        final idMap = {for (var i in unsorted) i.id!: i};
-        interactions = ids.map((id) => idMap[id]).whereType<Interaction>().toList();
+      // A. DASHBOARD STATS
+      final allContactsCount = await Contact.db.count(session, where: (t) => t.ownerId.equals(userId));
+      final driftingCount = await Contact.db.count(session, where: (t) => t.ownerId.equals(userId) & (t.healthScore < 50.0));
+      contextList.add("Dashboard Status:\n- Total Contacts: $allContactsCount\n- Contacts Drifting: $driftingCount");
+
+      // B. AGENDA
+      final now = DateTime.now().toUtc();
+      final todayStart = DateTime(now.year, now.month, now.day).toUtc();
+      final tomorrowEnd = todayStart.add(const Duration(days: 2));
+      final agendaItems = await AgendaItem.db.find(
+        session,
+        where: (t) => t.ownerId.equals(userId) & t.startTime.between(todayStart, tomorrowEnd),
+        orderBy: (t) => t.startTime,
+      );
+
+      if (agendaItems.isNotEmpty) {
+        contextList.add("Upcoming Agenda:");
+        for (var a in agendaItems) {
+           final note = a.description != null && a.description!.isNotEmpty ? " (Note: ${a.description})" : "";
+           contextList.add("- ${a.title} at ${_formatDate(a.startTime)} (${a.priority})$note");
+        }
       }
 
-      ChatMessage assistantMessage;
-
-      if (interactions.isEmpty) {
-        assistantMessage = ChatMessage(
-          chatSessionId: sessionId,
-          ownerId: userId,
-          role: 'assistant',
-          content: "I don't have any communication history to search through yet. Once your Gmail syncs, I'll be able to answer questions about your contacts.",
-          timestamp: DateTime.now().toUtc(),
-          sources: [],
-        );
-      } else {
-        // ... (Existing RAG logic)
+      // 4. Vector Search
+      if (!isGreeting) {
+        final queryEmbedding = await GeminiService.generateEmbedding(query);
+        final embeddingString = '[${queryEmbedding.join(',')}]';
+        final querySql = '''
+          SELECT "id" 
+          FROM "recall_interaction" 
+          WHERE "ownerId" = $userId 
+          ORDER BY "embedding" <=> '$embeddingString' 
+          LIMIT 5
+        ''';
         
-        // 3. Re-ranking / Filtering (Optional, but good for relevance)
-        // For now, we take top 5
-        final topMatches = interactions.take(5).toList();
-
-        // 4. Build Context
-        final contexts = topMatches.map((m) {
-          final contactName = m.contact?.name ?? m.contact?.email ?? 'Unknown';
-          final dateStr = _formatDate(m.date);
-          return '[$dateStr] $contactName: ${m.snippet}';
-        }).toList();
-
-        // 5. Generate Response
-        final response = await GeminiService.generateRagResponse(
-          query: query,
-          retrievedContexts: contexts,
-        );
-
-        // 6. Build Sources
-        final sources = topMatches.map((m) {
-          final contactName = m.contact?.name ?? m.contact?.email ?? 'Unknown';
-          return '$contactName (${_formatDate(m.date)})';
-        }).toSet().toList();
+        final result = await session.db.unsafeQuery(querySql);
+        final ids = result.map((row) => row.first as int).toList();
         
-        assistantMessage = ChatMessage(
-          chatSessionId: sessionId,
-          ownerId: userId,
-          role: 'assistant',
-          content: response,
-          timestamp: DateTime.now().toUtc(),
-          sources: sources,
-        );
+        if (ids.isNotEmpty) {
+           final interactions = await Interaction.db.find(
+            session,
+            where: (t) => t.id.inSet(ids.toSet()),
+            include: Interaction.include(contact: Contact.include()),
+          );
+          
+          if (interactions.isNotEmpty) {
+            contextList.add("Relevant Email Memory:");
+            contextList.addAll(interactions.map((m) {
+              final contactName = m.contact?.name ?? m.contact?.email ?? 'Unknown';
+              return '[$contactName]: ${m.snippet}';
+            }));
+            sources = interactions.map((m) => (m.contact?.name ?? 'Unknown') + " (${_formatDate(m.date)})").toSet().toList();
+          }
+        }
       }
+
+      // 5. Generate Response
+      final response = await GeminiService.generateRagResponse(
+        query: query,
+        retrievedContexts: contextList,
+      );
+
+      final assistantMessage = ChatMessage(
+        chatSessionId: sessionId,
+        ownerId: userId,
+        role: 'assistant',
+        content: response,
+        timestamp: DateTime.now().toUtc(),
+        sources: sources,
+      );
       
       // 7. Persist Assistant Message
       await ChatMessage.db.insertRow(session, assistantMessage);
@@ -175,33 +197,21 @@ class RecallEndpoint extends Endpoint {
 
     } catch (e, stack) {
       session.log('Ask RECALL error: $e', level: LogLevel.error, stackTrace: stack);
-      // Don't persist error messages to DB to avoid clutter
       return ChatMessage(
         chatSessionId: 0,
         ownerId: 1,
         role: 'assistant',
-        content: "I encountered an error processing your request. Please try again.",
+        content: "I encountered an error: $e",
         timestamp: DateTime.now().toUtc(),
-        sources: [],
       );
     }
   }
 
-  /// Get chat history for the user
-  Future<List<ChatMessage>> getChatHistory(Session session, {int limit = 50}) async {
-    final userIdentifier = session.authenticated?.userIdentifier;
-    if (userIdentifier == null) return [];
-    final userId = int.parse(userIdentifier);
-
-    return ChatMessage.db.find(
-      session,
-      where: (t) => t.ownerId.equals(userId),
-      orderBy: (t) => t.timestamp,
-      orderDescending: false, // Oldest first for chat UI
-      limit: limit,
-    );
+  int _daysSilent(DateTime? date) {
+    if (date == null) return 999;
+    return DateTime.now().toUtc().difference(date).inDays;
   }
-
+  
   String _formatDate(DateTime date) {
     final now = DateTime.now().toUtc();
     final diff = now.difference(date);
@@ -334,5 +344,12 @@ class RecallEndpoint extends Endpoint {
     );
 
     return draft;
+  }
+
+  String _generateTitle(String query) {
+    if (query.length > 30) {
+      return "${query.substring(0, 30)}...";
+    }
+    return query;
   }
 }

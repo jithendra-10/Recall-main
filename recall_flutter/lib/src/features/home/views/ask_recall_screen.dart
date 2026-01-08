@@ -4,6 +4,8 @@ import 'package:recall_client/recall_client.dart';
 import 'package:recall_flutter/src/features/auth/views/splash_screen.dart';
 import '../providers/dashboard_provider.dart';
 
+import 'package:recall_flutter/src/features/home/views/history_screen.dart';
+
 class AskRecallScreen extends ConsumerStatefulWidget {
   const AskRecallScreen({super.key});
 
@@ -62,49 +64,58 @@ class _AskRecallScreenState extends ConsumerState<AskRecallScreen> {
                     child: const Icon(Icons.auto_awesome, color: Colors.white, size: 28),
                   ),
                   const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Ask RECALL',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Ask RECALL',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      Text(
-                        'Search your relationship memory',
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.5),
-                          fontSize: 13,
+                        Text(
+                          // Show current session title if active, else tagline
+                          chatState.activeSessionId != null 
+                               ? (chatState.sessions.firstWhere((s) => s.id == chatState.activeSessionId, orElse: () => ChatSession(title: 'Chat', ownerId: 0, createdAt: DateTime.now(), updatedAt: DateTime.now())).title ?? 'Chat')
+                               : 'Search your relationship memory',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.5),
+                            fontSize: 13,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
+                  ),
+
+                  // New Chat Action
+                  IconButton(
+                    onPressed: () {
+                      ref.read(chatProvider.notifier).startNewChat();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                         const SnackBar(content: Text('Starting new conversation...'), duration: Duration(milliseconds: 800)),
+                      );
+                    },
+                    icon: const Icon(Icons.add_comment_outlined, color: Colors.white70),
+                    tooltip: 'New Chat',
+                  ),
+                  // History Action
+                  IconButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const HistoryScreen()),
+                      );
+                    },
+                    icon: const Icon(Icons.history, color: Colors.white70),
+                    tooltip: 'History',
                   ),
                 ],
               ),
-            ),
-            
-            // Actions Row
-            Padding(
-               padding: const EdgeInsets.symmetric(horizontal: 20),
-               child: Row(
-                 mainAxisAlignment: MainAxisAlignment.end,
-                 children: [
-                     IconButton(
-                     onPressed: () {
-                         // Trigger Sync AND Reload history
-                         ref.read(chatProvider.notifier).syncAndReload();
-                         ScaffoldMessenger.of(context).showSnackBar(
-                           const SnackBar(content: Text('Syncing Gmail & Reloading...')),
-                         );
-                     },
-                     icon: const Icon(Icons.history, color: Colors.white70),
-                     tooltip: 'Reload History',
-                   ),
-                 ],
-               ),
             ),
             
             // Chat messages

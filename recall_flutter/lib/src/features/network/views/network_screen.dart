@@ -4,6 +4,7 @@ import 'package:recall_client/recall_client.dart';
 import 'package:recall_flutter/main.dart';
 import 'package:recall_flutter/src/core/app_colors.dart';
 import '../../home/providers/dashboard_provider.dart';
+import 'package:recall_flutter/src/features/home/views/widgets/email_composer_sheet.dart';
 
 class NetworkScreen extends ConsumerStatefulWidget {
   const NetworkScreen({super.key});
@@ -17,17 +18,42 @@ class _NetworkScreenState extends ConsumerState<NetworkScreen> {
   String _selectedFilter = 'All Contacts';
   
   final List<String> _filters = [
-    'All Contacts',
-    'High Health',
-    'Drifting',
-    'New',
-    'Gmail',
-    'Calendar'
+    'All Contacts', // Show interactions with time (ascending/descending?) User said "ascending time mails", likely meanings recent first.
+    'New',          // Newly connected
+    'High Health',  // Highly engaged
+    'Drifting',     // Left out
   ];
 
   Future<void> _refresh() async {
-     // Reload contacts
-     return ref.refresh(contactsProvider.future).then((_) {});
+     return ref.read(contactsProvider.notifier).refresh();
+  }
+
+  Future<void> _showDraftComposer(Contact contact) async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Generating smart draft with AI...')),
+    );
+
+    try {
+      if (contact.id == null) throw Exception("Invalid contact ID");
+      final draftBody = await ref.read(draftEmailProvider(contact.id!).future);
+      if (!context.mounted) return;
+
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (ctx) => EmailComposerSheet(
+          contact: contact,
+          initialBody: draftBody,
+        ),
+      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text('Failed to generate draft: $e')),
+        );
+      }
+    }
   }
 
   @override
@@ -125,9 +151,17 @@ class _NetworkScreenState extends ConsumerState<NetworkScreen> {
           
           // Contact List
           Expanded(
-            child: contactsAsync.when(
-              data: (contacts) {
-                final filtered = _filterContacts(contacts);
+            child: Builder(builder: (context) {
+                if (contactsAsync.isLoading && contactsAsync.contacts.isEmpty) {
+                   return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+                }
+                
+                if (contactsAsync.contacts.isEmpty && contactsAsync.error != null) {
+                   return Center(child: Text('Error: ${contactsAsync.error}', style: const TextStyle(color: Colors.redAccent)));
+                }
+
+                // If we have data (even with error), show it
+                final filtered = _filterAndSortContacts(contactsAsync.contacts);
                 
                 if (filtered.isEmpty) {
                   return ListView(
@@ -152,13 +186,13 @@ class _NetworkScreenState extends ConsumerState<NetworkScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: filtered.length,
                   itemBuilder: (context, index) {
-                    return _ContactCard(contact: filtered[index]);
+                    return _ContactCard(
+                      contact: filtered[index],
+                      onDraftPressed: () => _showDraftComposer(filtered[index]),
+                    );
                   },
                 );
-              },
-              loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
-              error: (err, stack) => Center(child: Text('Error: $err', style: const TextStyle(color: Colors.redAccent))),
-            ),
+            }),
           ),
         ],
       ),
@@ -166,8 +200,8 @@ class _NetworkScreenState extends ConsumerState<NetworkScreen> {
     );
   }
 
-  List<Contact> _filterContacts(List<Contact> contacts) {
-    return contacts.where((c) {
+  List<Contact> _filterAndSortContacts(List<Contact> contacts) {
+    var filtered = contacts.where((c) {
       // 1. Search Query
       final name = c.name?.toLowerCase() ?? '';
       final email = c.email.toLowerCase();
@@ -176,32 +210,43 @@ class _NetworkScreenState extends ConsumerState<NetworkScreen> {
         return false;
       }
 
-      // 2. Filter Chips
+      // 2. Filter Logic
       switch (_selectedFilter) {
         case 'High Health':
           return c.healthScore >= 80;
         case 'Drifting':
-          return c.healthScore < 50; // Threshold for drifting
+          return c.healthScore < 50; 
         case 'New':
-          // Mock logic: created recently or untagged? 
-          // Assuming 'New' tag or no interactions
+          // Logic: Tagged 'New' OR created in last 7 days (if createdAt exists) OR just check interaction count/tags
+          // Assuming 'New' tag is populated by server or client logic.
+          // Fallback: If score is 0 and no recent interactions?
           return c.tags?.contains('New') ?? false; 
-        case 'Gmail':
-          // Mock logic: source
-          return true; // Return all for now or filter by implicit source
-        case 'Calendar':
-           return false; // Mock
+        case 'All Contacts':
         default:
           return true;
       }
     }).toList();
+
+    // 3. Sorting (Descending by Last Interaction Time)
+    // User requested "assending time mails", assuming latest at top.
+    filtered.sort((a, b) {
+      final aTime = a.lastContacted ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final bTime = b.lastContacted ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return bTime.compareTo(aTime); // Descending
+    });
+
+    return filtered;
   }
 }
 
 class _ContactCard extends StatelessWidget {
   final Contact contact;
+  final VoidCallback onDraftPressed;
 
-  const _ContactCard({required this.contact});
+  const _ContactCard({
+    required this.contact,
+    required this.onDraftPressed,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -273,6 +318,16 @@ class _ContactCard extends StatelessWidget {
                     Text(
                       _getTimeSince(contact.lastContacted),
                       style: const TextStyle(color: Colors.grey, fontSize: 10),
+                    ),
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      width: 32, 
+                      height: 32,
+                      child: IconButton(
+                        padding: EdgeInsets.zero,
+                        icon: const Icon(Icons.edit_note, color: AppColors.primary, size: 20),
+                        onPressed: onDraftPressed,
+                      ),
                     ),
                   ],
                 ),

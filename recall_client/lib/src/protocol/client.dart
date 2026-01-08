@@ -21,10 +21,11 @@ import 'package:recall_client/src/protocol/contact.dart' as _i6;
 import 'package:recall_client/src/protocol/interaction_summary.dart' as _i7;
 import 'package:recall_client/src/protocol/setup_status.dart' as _i8;
 import 'package:recall_client/src/protocol/agenda_item.dart' as _i9;
-import 'package:recall_client/src/protocol/chat_message.dart' as _i10;
-import 'package:recall_client/src/protocol/greetings/greeting.dart' as _i11;
-import 'package:serverpod_auth_client/serverpod_auth_client.dart' as _i12;
-import 'protocol.dart' as _i13;
+import 'package:recall_client/src/protocol/chat_session.dart' as _i10;
+import 'package:recall_client/src/protocol/chat_message.dart' as _i11;
+import 'package:recall_client/src/protocol/greetings/greeting.dart' as _i12;
+import 'package:serverpod_auth_client/serverpod_auth_client.dart' as _i13;
+import 'protocol.dart' as _i14;
 
 /// By extending [EmailIdpBaseEndpoint], the email identity provider endpoints
 /// are made available on the server and enable the corresponding sign-in widget
@@ -391,21 +392,39 @@ class EndpointRecall extends _i2.EndpointRef {
   @override
   String get name => 'recall';
 
-  /// Ask RECALL - RAG-powered question answering with Gemini
-  _i3.Future<_i10.ChatMessage> askRecall(String query) =>
-      caller.callServerEndpoint<_i10.ChatMessage>(
+  /// Get list of chat sessions for the user
+  _i3.Future<List<_i10.ChatSession>> getChatSessions({required int limit}) =>
+      caller.callServerEndpoint<List<_i10.ChatSession>>(
         'recall',
-        'askRecall',
-        {'query': query},
-      );
-
-  /// Get chat history for the user
-  _i3.Future<List<_i10.ChatMessage>> getChatHistory({required int limit}) =>
-      caller.callServerEndpoint<List<_i10.ChatMessage>>(
-        'recall',
-        'getChatHistory',
+        'getChatSessions',
         {'limit': limit},
       );
+
+  /// Get messages for a specific session
+  _i3.Future<List<_i11.ChatMessage>> getChatMessages({
+    required int chatSessionId,
+    required int limit,
+  }) => caller.callServerEndpoint<List<_i11.ChatMessage>>(
+    'recall',
+    'getChatMessages',
+    {
+      'chatSessionId': chatSessionId,
+      'limit': limit,
+    },
+  );
+
+  /// Ask RECALL - RAG-powered question answering with Gemini
+  _i3.Future<_i11.ChatMessage> askRecall(
+    String query, {
+    int? chatSessionId,
+  }) => caller.callServerEndpoint<_i11.ChatMessage>(
+    'recall',
+    'askRecall',
+    {
+      'query': query,
+      'chatSessionId': chatSessionId,
+    },
+  );
 
   /// Process voice note transcript
   _i3.Future<String> processVoiceNote(String transcript) =>
@@ -439,8 +458,8 @@ class EndpointGreeting extends _i2.EndpointRef {
   String get name => 'greeting';
 
   /// Returns a personalized greeting message: "Hello {name}".
-  _i3.Future<_i11.Greeting> hello(String name) =>
-      caller.callServerEndpoint<_i11.Greeting>(
+  _i3.Future<_i12.Greeting> hello(String name) =>
+      caller.callServerEndpoint<_i12.Greeting>(
         'greeting',
         'hello',
         {'name': name},
@@ -450,13 +469,13 @@ class EndpointGreeting extends _i2.EndpointRef {
 class Modules {
   Modules(Client client) {
     serverpod_auth_idp = _i1.Caller(client);
-    auth = _i12.Caller(client);
+    auth = _i13.Caller(client);
     serverpod_auth_core = _i4.Caller(client);
   }
 
   late final _i1.Caller serverpod_auth_idp;
 
-  late final _i12.Caller auth;
+  late final _i13.Caller auth;
 
   late final _i4.Caller serverpod_auth_core;
 }
@@ -481,7 +500,7 @@ class Client extends _i2.ServerpodClientShared {
     bool? disconnectStreamsOnLostInternetConnection,
   }) : super(
          host,
-         _i13.Protocol(),
+         _i14.Protocol(),
          securityContext: securityContext,
          streamingConnectionTimeout: streamingConnectionTimeout,
          connectionTimeout: connectionTimeout,

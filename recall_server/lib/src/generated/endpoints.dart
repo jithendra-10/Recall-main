@@ -531,26 +531,8 @@ class Endpoints extends _i1.EndpointDispatch {
       name: 'recall',
       endpoint: endpoints['recall']!,
       methodConnectors: {
-        'askRecall': _i1.MethodConnector(
-          name: 'askRecall',
-          params: {
-            'query': _i1.ParameterDescription(
-              name: 'query',
-              type: _i1.getType<String>(),
-              nullable: false,
-            ),
-          },
-          call:
-              (
-                _i1.Session session,
-                Map<String, dynamic> params,
-              ) async => (endpoints['recall'] as _i8.RecallEndpoint).askRecall(
-                session,
-                params['query'],
-              ),
-        ),
-        'getChatHistory': _i1.MethodConnector(
-          name: 'getChatHistory',
+        'getChatSessions': _i1.MethodConnector(
+          name: 'getChatSessions',
           params: {
             'limit': _i1.ParameterDescription(
               name: 'limit',
@@ -563,10 +545,59 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['recall'] as _i8.RecallEndpoint).getChatHistory(
+                  (endpoints['recall'] as _i8.RecallEndpoint).getChatSessions(
                     session,
                     limit: params['limit'],
                   ),
+        ),
+        'getChatMessages': _i1.MethodConnector(
+          name: 'getChatMessages',
+          params: {
+            'chatSessionId': _i1.ParameterDescription(
+              name: 'chatSessionId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+            'limit': _i1.ParameterDescription(
+              name: 'limit',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['recall'] as _i8.RecallEndpoint).getChatMessages(
+                    session,
+                    chatSessionId: params['chatSessionId'],
+                    limit: params['limit'],
+                  ),
+        ),
+        'askRecall': _i1.MethodConnector(
+          name: 'askRecall',
+          params: {
+            'query': _i1.ParameterDescription(
+              name: 'query',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+            'chatSessionId': _i1.ParameterDescription(
+              name: 'chatSessionId',
+              type: _i1.getType<int?>(),
+              nullable: true,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['recall'] as _i8.RecallEndpoint).askRecall(
+                session,
+                params['query'],
+                chatSessionId: params['chatSessionId'],
+              ),
         ),
         'processVoiceNote': _i1.MethodConnector(
           name: 'processVoiceNote',
