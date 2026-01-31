@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "671411596922",
+    "project_id": "recall-1",
+    "storage_bucket": "recall-1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:671411596922:android:6c57f17e4c129be9cb15c3",
+        "android_client_info": {
+          "package_name": "com.example.recall_flutter"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAu27K0tstHQc81ETLqlPD8W-ZkRHlyCzY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

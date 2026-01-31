@@ -474,6 +474,19 @@ Answer as the Butler:''';
   static Future<Map<String, dynamic>?> _analyzeVoiceNoteGroq(String transcript, DateTime now) async {
     final systemPrompt = '''You are an AI assistant for Recall. Analyze the transcript.
 Context Time: ${now.toIso8601String()}
+
+Extraction Goals:
+1. Identify Contacts: Is the user talking about a person? Extract their name and any relationship context.
+   IMPORTANT: Do NOT include dates (e.g. "Jan", "Feb") or prepositions as part of the name. "Nithin on Jan 19" -> Name: "Nithin".
+2. Identify Agenda/Events: Is the user asking to be reminded of something or setting a meeting?
+3. Identify Context: What is the core memory or note here?
+
+Resolving Dates:
+- "After 10 days" means ${now.add(const Duration(days: 10)).toIso8601String()}.
+- "Tomorrow at 5pm" means ${now.add(const Duration(days: 1)).toString().split(' ')[0]} 17:00:00.
+- "Next Monday" means the coming Monday relative to ${now.weekday}.
+- Use the Context Time as the anchor.
+
 Output strict JSON format:
 {
   "summary": "string",

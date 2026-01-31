@@ -4,7 +4,8 @@ fields:
   ownerId: int
   
 
-  contact: Contact?, relation
+  linkedContactId: int?
+  contact: Contact?, relation(field=linkedContactId)
   
   date: DateTime
   

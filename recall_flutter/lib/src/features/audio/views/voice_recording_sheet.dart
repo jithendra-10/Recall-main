@@ -45,20 +45,31 @@ class _VoiceRecordingSheetState extends State<VoiceRecordingSheet> with SingleTi
 
     bool available = await _speech.initialize(
       onStatus: (status) {
+        print('STT Status: $status'); // Debug
         if (status == 'listening') {
           setState(() => _isListening = true);
-        } else if (status == 'notListening') {
+        } else if (status == 'notListening' || status == 'done') {
           setState(() => _isListening = false);
+          
+          // Only auto-complete if we have text OR if user manually stopped (listener will trigger)
+          if (_text.isNotEmpty) {
+            _completeRecording();
+          }
         }
       },
       onError: (errorNotification) {
+        print('STT Error: $errorNotification');
         setState(() => _isListening = false);
-        // Handle error silently or show toast
       },
     );
 
     if (available) {
-      _startListening();
+      // Small delay to ensure UI is ready
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) _startListening();
+      });
+    } else {
+      print('STT not available');
     }
   }
 
@@ -75,14 +86,27 @@ class _VoiceRecordingSheetState extends State<VoiceRecordingSheet> with SingleTi
         });
       },
       listenFor: const Duration(seconds: 30),
-      pauseFor: const Duration(seconds: 3),
-      localeId: 'en_US',
+      pauseFor: const Duration(seconds: 2), // Reduced for snappier auto-stop
+      partialResults: true,
+      cancelOnError: false, // Don't cancel immediately on minor errors
+      listenMode: stt.ListenMode.dictation,
     );
+    setState(() => _isListening = true);
   }
 
-  void _stopListening() {
-    _speech.stop();
-    // Return result
+  Future<void> _stopListening() async {
+    await _speech.stop();
+    if (!mounted) return; // Safety
+    setState(() => _isListening = false);
+    if (_text.isNotEmpty) {
+      _completeRecording();
+    }
+  }
+
+  void _completeRecording() {
+    if (!mounted) return;
+    // Debounce to prevent double pops
+    if (!Navigator.canPop(context)) return;
     Navigator.pop(context, _text.isNotEmpty ? _text : null);
   }
 
@@ -167,7 +191,7 @@ class _VoiceRecordingSheetState extends State<VoiceRecordingSheet> with SingleTi
               
               // Status Text
               Text(
-                _isListening ? 'Listening...' : 'Tap to Speak',
+                _isListening ? 'Listening...' : 'Initializing...',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 18,

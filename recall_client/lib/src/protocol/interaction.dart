@@ -18,7 +18,7 @@ abstract class Interaction implements _i1.SerializableModel {
   Interaction._({
     this.id,
     required this.ownerId,
-    required this.contactId,
+    this.linkedContactId,
     this.contact,
     required this.date,
     required this.snippet,
@@ -32,7 +32,7 @@ abstract class Interaction implements _i1.SerializableModel {
   factory Interaction({
     int? id,
     required int ownerId,
-    required int contactId,
+    int? linkedContactId,
     _i2.Contact? contact,
     required DateTime date,
     required String snippet,
@@ -47,7 +47,7 @@ abstract class Interaction implements _i1.SerializableModel {
     return Interaction(
       id: jsonSerialization['id'] as int?,
       ownerId: jsonSerialization['ownerId'] as int,
-      contactId: jsonSerialization['contactId'] as int,
+      linkedContactId: jsonSerialization['linkedContactId'] as int?,
       contact: jsonSerialization['contact'] == null
           ? null
           : _i3.Protocol().deserialize<_i2.Contact>(
@@ -72,7 +72,7 @@ abstract class Interaction implements _i1.SerializableModel {
 
   int ownerId;
 
-  int contactId;
+  int? linkedContactId;
 
   _i2.Contact? contact;
 
@@ -96,7 +96,7 @@ abstract class Interaction implements _i1.SerializableModel {
   Interaction copyWith({
     int? id,
     int? ownerId,
-    int? contactId,
+    int? linkedContactId,
     _i2.Contact? contact,
     DateTime? date,
     String? snippet,
@@ -112,7 +112,7 @@ abstract class Interaction implements _i1.SerializableModel {
       '__className__': 'Interaction',
       if (id != null) 'id': id,
       'ownerId': ownerId,
-      'contactId': contactId,
+      if (linkedContactId != null) 'linkedContactId': linkedContactId,
       if (contact != null) 'contact': contact?.toJson(),
       'date': date.toJson(),
       'snippet': snippet,
@@ -136,7 +136,7 @@ class _InteractionImpl extends Interaction {
   _InteractionImpl({
     int? id,
     required int ownerId,
-    required int contactId,
+    int? linkedContactId,
     _i2.Contact? contact,
     required DateTime date,
     required String snippet,
@@ -148,7 +148,7 @@ class _InteractionImpl extends Interaction {
   }) : super._(
          id: id,
          ownerId: ownerId,
-         contactId: contactId,
+         linkedContactId: linkedContactId,
          contact: contact,
          date: date,
          snippet: snippet,
@@ -166,7 +166,7 @@ class _InteractionImpl extends Interaction {
   Interaction copyWith({
     Object? id = _Undefined,
     int? ownerId,
-    int? contactId,
+    Object? linkedContactId = _Undefined,
     Object? contact = _Undefined,
     DateTime? date,
     String? snippet,
@@ -179,7 +179,9 @@ class _InteractionImpl extends Interaction {
     return Interaction(
       id: id is int? ? id : this.id,
       ownerId: ownerId ?? this.ownerId,
-      contactId: contactId ?? this.contactId,
+      linkedContactId: linkedContactId is int?
+          ? linkedContactId
+          : this.linkedContactId,
       contact: contact is _i2.Contact? ? contact : this.contact?.copyWith(),
       date: date ?? this.date,
       snippet: snippet ?? this.snippet,

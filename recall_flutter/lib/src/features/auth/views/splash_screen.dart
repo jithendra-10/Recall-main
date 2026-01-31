@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'sign_in_screen.dart';
 import '../controllers/auth_controller.dart';
 import '../../home/views/dashboard_screen.dart';
+import 'package:recall_flutter/main.dart';
 
 /// App color scheme
 class AppColors {
@@ -45,12 +46,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   Future<void> _checkAuthAndNavigate() async {
+    // Initialize Session Manager here to ensure we wait for it
     // Wait minimum splash time
-    await Future.delayed(const Duration(milliseconds: 2000));
+    await Future.delayed(const Duration(milliseconds: 1000));
+    await Future.delayed(const Duration(milliseconds: 1000));
 
     if (!mounted) return;
 
-    // Try auto-login
+    // Try auto-login (includes silent recovery if session is missing)
     final authController = ref.read(authControllerProvider);
     final isLoggedIn = await authController.tryAutoLogin();
 
@@ -71,6 +74,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       );
     }
   }
+
 
   @override
   void dispose() {

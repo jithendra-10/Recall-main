@@ -21,11 +21,12 @@ import 'package:recall_client/src/protocol/contact.dart' as _i6;
 import 'package:recall_client/src/protocol/interaction_summary.dart' as _i7;
 import 'package:recall_client/src/protocol/setup_status.dart' as _i8;
 import 'package:recall_client/src/protocol/agenda_item.dart' as _i9;
-import 'package:recall_client/src/protocol/chat_session.dart' as _i10;
-import 'package:recall_client/src/protocol/chat_message.dart' as _i11;
-import 'package:recall_client/src/protocol/greetings/greeting.dart' as _i12;
-import 'package:serverpod_auth_client/serverpod_auth_client.dart' as _i13;
-import 'protocol.dart' as _i14;
+import 'package:recall_client/src/protocol/notification.dart' as _i10;
+import 'package:recall_client/src/protocol/chat_session.dart' as _i11;
+import 'package:recall_client/src/protocol/chat_message.dart' as _i12;
+import 'package:recall_client/src/protocol/greetings/greeting.dart' as _i13;
+import 'package:serverpod_auth_client/serverpod_auth_client.dart' as _i14;
+import 'protocol.dart' as _i15;
 
 /// By extending [EmailIdpBaseEndpoint], the email identity provider endpoints
 /// are made available on the server and enable the corresponding sign-in widget
@@ -323,6 +324,46 @@ class EndpointDashboard extends _i2.EndpointRef {
       'clientReportedId': clientReportedId,
     },
   );
+
+  /// Delete an agenda item
+  _i3.Future<bool> deleteAgendaItem(int agendaId) =>
+      caller.callServerEndpoint<bool>(
+        'dashboard',
+        'deleteAgendaItem',
+        {'agendaId': agendaId},
+      );
+
+  /// Trigger a calendar sync manually
+  _i3.Future<void> triggerCalendarSync() => caller.callServerEndpoint<void>(
+    'dashboard',
+    'triggerCalendarSync',
+    {},
+  );
+
+  /// Get notifications for the user
+  _i3.Future<List<_i10.Notification>> getNotifications({
+    int? clientReportedId,
+  }) => caller.callServerEndpoint<List<_i10.Notification>>(
+    'dashboard',
+    'getNotifications',
+    {'clientReportedId': clientReportedId},
+  );
+
+  /// Add a new agenda item manually
+  _i3.Future<_i9.AgendaItem?> addAgendaItem(_i9.AgendaItem item) =>
+      caller.callServerEndpoint<_i9.AgendaItem?>(
+        'dashboard',
+        'addAgendaItem',
+        {'item': item},
+      );
+
+  /// Delete a contact
+  _i3.Future<bool> deleteContact(int contactId) =>
+      caller.callServerEndpoint<bool>(
+        'dashboard',
+        'deleteContact',
+        {'contactId': contactId},
+      );
 }
 
 /// Debug endpoint for testing - to be removed in production
@@ -344,6 +385,13 @@ class EndpointDebug extends _i2.EndpointRef {
   _i3.Future<String> clearTestData() => caller.callServerEndpoint<String>(
     'debug',
     'clearTestData',
+    {},
+  );
+
+  /// Heal orphaned data by linking to contacts
+  _i3.Future<String> healData() => caller.callServerEndpoint<String>(
+    'debug',
+    'healData',
     {},
   );
 }
@@ -393,18 +441,18 @@ class EndpointRecall extends _i2.EndpointRef {
   String get name => 'recall';
 
   /// Get list of chat sessions for the user
-  _i3.Future<List<_i10.ChatSession>> getChatSessions({required int limit}) =>
-      caller.callServerEndpoint<List<_i10.ChatSession>>(
+  _i3.Future<List<_i11.ChatSession>> getChatSessions({required int limit}) =>
+      caller.callServerEndpoint<List<_i11.ChatSession>>(
         'recall',
         'getChatSessions',
         {'limit': limit},
       );
 
   /// Get messages for a specific session
-  _i3.Future<List<_i11.ChatMessage>> getChatMessages({
+  _i3.Future<List<_i12.ChatMessage>> getChatMessages({
     required int chatSessionId,
     required int limit,
-  }) => caller.callServerEndpoint<List<_i11.ChatMessage>>(
+  }) => caller.callServerEndpoint<List<_i12.ChatMessage>>(
     'recall',
     'getChatMessages',
     {
@@ -413,11 +461,19 @@ class EndpointRecall extends _i2.EndpointRef {
     },
   );
 
+  /// Delete a chat session
+  _i3.Future<bool> deleteChatSession(int chatSessionId) =>
+      caller.callServerEndpoint<bool>(
+        'recall',
+        'deleteChatSession',
+        {'chatSessionId': chatSessionId},
+      );
+
   /// Ask RECALL - RAG-powered question answering with Gemini
-  _i3.Future<_i11.ChatMessage> askRecall(
+  _i3.Future<_i12.ChatMessage> askRecall(
     String query, {
     int? chatSessionId,
-  }) => caller.callServerEndpoint<_i11.ChatMessage>(
+  }) => caller.callServerEndpoint<_i12.ChatMessage>(
     'recall',
     'askRecall',
     {
@@ -427,12 +483,17 @@ class EndpointRecall extends _i2.EndpointRef {
   );
 
   /// Process voice note transcript
-  _i3.Future<String> processVoiceNote(String transcript) =>
-      caller.callServerEndpoint<String>(
-        'recall',
-        'processVoiceNote',
-        {'transcript': transcript},
-      );
+  _i3.Future<String> processVoiceNote(
+    String transcript, {
+    int? clientReportedId,
+  }) => caller.callServerEndpoint<String>(
+    'recall',
+    'processVoiceNote',
+    {
+      'transcript': transcript,
+      'clientReportedId': clientReportedId,
+    },
+  );
 
   /// Generate AI draft email for a contact using Gemini
   _i3.Future<String> generateDraftEmail(
@@ -458,8 +519,8 @@ class EndpointGreeting extends _i2.EndpointRef {
   String get name => 'greeting';
 
   /// Returns a personalized greeting message: "Hello {name}".
-  _i3.Future<_i12.Greeting> hello(String name) =>
-      caller.callServerEndpoint<_i12.Greeting>(
+  _i3.Future<_i13.Greeting> hello(String name) =>
+      caller.callServerEndpoint<_i13.Greeting>(
         'greeting',
         'hello',
         {'name': name},
@@ -469,13 +530,13 @@ class EndpointGreeting extends _i2.EndpointRef {
 class Modules {
   Modules(Client client) {
     serverpod_auth_idp = _i1.Caller(client);
-    auth = _i13.Caller(client);
+    auth = _i14.Caller(client);
     serverpod_auth_core = _i4.Caller(client);
   }
 
   late final _i1.Caller serverpod_auth_idp;
 
-  late final _i13.Caller auth;
+  late final _i14.Caller auth;
 
   late final _i4.Caller serverpod_auth_core;
 }
@@ -500,7 +561,7 @@ class Client extends _i2.ServerpodClientShared {
     bool? disconnectStreamsOnLostInternetConnection,
   }) : super(
          host,
-         _i14.Protocol(),
+         _i15.Protocol(),
          securityContext: securityContext,
          streamingConnectionTimeout: streamingConnectionTimeout,
          connectionTimeout: connectionTimeout,

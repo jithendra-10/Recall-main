@@ -19,11 +19,12 @@ import '../endpoints/email_endpoint.dart' as _i6;
 import '../endpoints/google_auth_endpoint.dart' as _i7;
 import '../endpoints/recall_endpoint.dart' as _i8;
 import '../greetings/greeting_endpoint.dart' as _i9;
+import 'package:recall_server/src/generated/agenda_item.dart' as _i10;
 import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
-    as _i10;
-import 'package:serverpod_auth_server/serverpod_auth_server.dart' as _i11;
+    as _i11;
+import 'package:serverpod_auth_server/serverpod_auth_server.dart' as _i12;
 import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
-    as _i12;
+    as _i13;
 
 class Endpoints extends _i1.EndpointDispatch {
   @override
@@ -437,6 +438,92 @@ class Endpoints extends _i1.EndpointDispatch {
                     clientReportedId: params['clientReportedId'],
                   ),
         ),
+        'deleteAgendaItem': _i1.MethodConnector(
+          name: 'deleteAgendaItem',
+          params: {
+            'agendaId': _i1.ParameterDescription(
+              name: 'agendaId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['dashboard'] as _i4.DashboardEndpoint)
+                  .deleteAgendaItem(
+                    session,
+                    params['agendaId'],
+                  ),
+        ),
+        'triggerCalendarSync': _i1.MethodConnector(
+          name: 'triggerCalendarSync',
+          params: {},
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['dashboard'] as _i4.DashboardEndpoint)
+                  .triggerCalendarSync(session),
+        ),
+        'getNotifications': _i1.MethodConnector(
+          name: 'getNotifications',
+          params: {
+            'clientReportedId': _i1.ParameterDescription(
+              name: 'clientReportedId',
+              type: _i1.getType<int?>(),
+              nullable: true,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['dashboard'] as _i4.DashboardEndpoint)
+                  .getNotifications(
+                    session,
+                    clientReportedId: params['clientReportedId'],
+                  ),
+        ),
+        'addAgendaItem': _i1.MethodConnector(
+          name: 'addAgendaItem',
+          params: {
+            'item': _i1.ParameterDescription(
+              name: 'item',
+              type: _i1.getType<_i10.AgendaItem>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['dashboard'] as _i4.DashboardEndpoint)
+                  .addAgendaItem(
+                    session,
+                    params['item'],
+                  ),
+        ),
+        'deleteContact': _i1.MethodConnector(
+          name: 'deleteContact',
+          params: {
+            'contactId': _i1.ParameterDescription(
+              name: 'contactId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['dashboard'] as _i4.DashboardEndpoint)
+                  .deleteContact(
+                    session,
+                    params['contactId'],
+                  ),
+        ),
       },
     );
     connectors['debug'] = _i1.EndpointConnector(
@@ -463,6 +550,16 @@ class Endpoints extends _i1.EndpointDispatch {
                 Map<String, dynamic> params,
               ) async => (endpoints['debug'] as _i5.DebugEndpoint)
                   .clearTestData(session),
+        ),
+        'healData': _i1.MethodConnector(
+          name: 'healData',
+          params: {},
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['debug'] as _i5.DebugEndpoint).healData(session),
         ),
       },
     );
@@ -575,6 +672,25 @@ class Endpoints extends _i1.EndpointDispatch {
                     limit: params['limit'],
                   ),
         ),
+        'deleteChatSession': _i1.MethodConnector(
+          name: 'deleteChatSession',
+          params: {
+            'chatSessionId': _i1.ParameterDescription(
+              name: 'chatSessionId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['recall'] as _i8.RecallEndpoint).deleteChatSession(
+                    session,
+                    params['chatSessionId'],
+                  ),
+        ),
         'askRecall': _i1.MethodConnector(
           name: 'askRecall',
           params: {
@@ -607,6 +723,11 @@ class Endpoints extends _i1.EndpointDispatch {
               type: _i1.getType<String>(),
               nullable: false,
             ),
+            'clientReportedId': _i1.ParameterDescription(
+              name: 'clientReportedId',
+              type: _i1.getType<int?>(),
+              nullable: true,
+            ),
           },
           call:
               (
@@ -616,6 +737,7 @@ class Endpoints extends _i1.EndpointDispatch {
                   (endpoints['recall'] as _i8.RecallEndpoint).processVoiceNote(
                     session,
                     params['transcript'],
+                    clientReportedId: params['clientReportedId'],
                   ),
         ),
         'generateDraftEmail': _i1.MethodConnector(
@@ -669,10 +791,10 @@ class Endpoints extends _i1.EndpointDispatch {
         ),
       },
     );
-    modules['serverpod_auth_idp'] = _i10.Endpoints()
+    modules['serverpod_auth_idp'] = _i11.Endpoints()
       ..initializeEndpoints(server);
-    modules['serverpod_auth'] = _i11.Endpoints()..initializeEndpoints(server);
-    modules['serverpod_auth_core'] = _i12.Endpoints()
+    modules['serverpod_auth'] = _i12.Endpoints()..initializeEndpoints(server);
+    modules['serverpod_auth_core'] = _i13.Endpoints()
       ..initializeEndpoints(server);
   }
 }

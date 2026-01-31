@@ -6,6 +6,7 @@ import 'package:recall_flutter/main.dart'; // For client
 import 'package:recall_flutter/src/core/app_colors.dart';
 
 import '../providers/agenda_provider.dart';
+import 'add_agenda_sheet.dart';
 
 class AgendaScreen extends ConsumerStatefulWidget {
   const AgendaScreen({super.key});
@@ -15,20 +16,16 @@ class AgendaScreen extends ConsumerStatefulWidget {
 }
 
 class _AgendaScreenState extends ConsumerState<AgendaScreen> {
-  DateTime _selectedDate = DateTime.now();
+  AgendaView _selectedView = AgendaView.present;
 
-  void _changeDate(int offset) {
+  void _changeView(AgendaView view) {
     setState(() {
-      _selectedDate = DateTime.now().add(Duration(days: offset));
+      _selectedView = view;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final isToday = DateUtils.isSameDay(_selectedDate, DateTime.now());
-    final isYesterday = DateUtils.isSameDay(_selectedDate, DateTime.now().subtract(const Duration(days: 1)));
-    final isTomorrow = DateUtils.isSameDay(_selectedDate, DateTime.now().add(const Duration(days: 1)));
-
     return Scaffold(
       backgroundColor: AppColors.backgroundDark,
       body: SafeArea(
@@ -40,48 +37,48 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      _BackButton(),
-                      const SizedBox(width: 16),
-                      const Text(
-                        'Agenda',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: -1,
-                        ),
-                      ),
-                    ],
+                  const Text(
+                    'Agenda',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: -1,
+                    ),
                   ),
-                  _SettingsButton(),
+                  // _SettingsButton removed
                 ],
               ),
             ),
 
-            // Date Selector
+            // View Selector
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Row(
                 children: [
                   _DateChip(
-                    label: 'Yesterday',
-                    isSelected: isYesterday,
-                    onTap: () => _changeDate(-1),
+                    label: 'All',
+                    isSelected: _selectedView == AgendaView.all,
+                    onTap: () => _changeView(AgendaView.all),
                   ),
                   const SizedBox(width: 12),
                   _DateChip(
-                    label: 'Today',
-                    isSelected: isToday,
-                    onTap: () => _changeDate(0),
+                    label: 'Present',
+                    isSelected: _selectedView == AgendaView.present,
+                    onTap: () => _changeView(AgendaView.present),
                   ),
                   const SizedBox(width: 12),
                   _DateChip(
-                    label: 'Tomorrow',
-                    isSelected: isTomorrow,
-                    onTap: () => _changeDate(1),
+                    label: 'Future',
+                    isSelected: _selectedView == AgendaView.future,
+                    onTap: () => _changeView(AgendaView.future),
+                  ),
+                  const SizedBox(width: 12),
+                  _DateChip(
+                    label: 'Past',
+                    isSelected: _selectedView == AgendaView.past,
+                    onTap: () => _changeView(AgendaView.past),
                   ),
                 ],
               ),
@@ -91,13 +88,20 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
 
             // Content
             Expanded(
-              child: _AgendaContent(selectedDate: _selectedDate),
+              child: _AgendaContent(selectedView: _selectedView),
             ),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {}, // Add manually
+        onPressed: () {
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (context) => const AddAgendaSheet(),
+          );
+        },
         backgroundColor: AppColors.primary,
         child: const Icon(Icons.add, color: Colors.black),
       ),
@@ -122,20 +126,7 @@ class _BackButton extends StatelessWidget {
   }
 }
 
-class _SettingsButton extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceDark,
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
-      ),
-      child: const Icon(Icons.settings, color: AppColors.primary, size: 20),
-    );
-  }
-}
+
 
 class _DateChip extends StatelessWidget {
   final String label;
@@ -177,19 +168,21 @@ class _DateChip extends StatelessWidget {
   }
 }
 
-class _TimelineItem extends StatelessWidget {
+class _TimelineItem extends ConsumerWidget {
   final AgendaItem item;
   final bool isFirst;
   final bool isLast;
+  final AgendaView currentView;
 
   const _TimelineItem({
     required this.item,
     required this.isFirst,
     required this.isLast,
+    required this.currentView,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final timeFormat = DateFormat('h:mm a');
     final timeStr = timeFormat.format(item.startTime.toLocal());
     final isHighPriority = item.priority == 'high';
@@ -273,7 +266,24 @@ class _TimelineItem extends StatelessWidget {
           Expanded(
             child: Padding(
               padding: const EdgeInsets.only(top: 20, bottom: 32),
-              child: _EventCard(item: item),
+              child: Dismissible(
+                key: ValueKey(item.id),
+                direction: DismissDirection.endToStart,
+                background: Container(
+                  alignment: Alignment.centerRight,
+                  padding: const EdgeInsets.only(right: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: Colors.red.withOpacity(0.5)),
+                  ),
+                  child: const Icon(Icons.delete, color: Colors.red),
+                ),
+                onDismissed: (direction) {
+                   ref.read(agendaProvider(currentView).notifier).deleteItem(item.id!);
+                },
+                child: _EventCard(item: item),
+              ),
             ),
           ),
         ],
@@ -394,6 +404,7 @@ class _EventCard extends StatelessWidget {
                               Text(
                                 item.description!,
                                 style: const TextStyle(color: Color(0xFFE2E8F0), fontSize: 13, height: 1.4),
+                                softWrap: true,
                               ),
                             ],
                           ),
@@ -463,19 +474,19 @@ class _AvatarGroup extends StatelessWidget {
 }
 
 class _AgendaContent extends ConsumerWidget {
-  final DateTime selectedDate;
+  final AgendaView selectedView;
 
-  const _AgendaContent({required this.selectedDate});
+  const _AgendaContent({required this.selectedView});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Use the provider for the specific date
-    final state = ref.watch(agendaProvider(selectedDate));
+    // Use the provider for the specific view
+    final state = ref.watch(agendaProvider(selectedView));
     final items = state.items;
 
     return RefreshIndicator(
       onRefresh: () async {
-        await ref.read(agendaProvider(selectedDate).notifier).refresh();
+        await ref.read(agendaProvider(selectedView).notifier).refresh();
       },
       color: AppColors.primary,
       backgroundColor: AppColors.surfaceDark,
@@ -497,6 +508,7 @@ class _AgendaContent extends ConsumerWidget {
                   item: items[index],
                   isFirst: index == 0,
                   isLast: index == items.length - 1,
+                  currentView: selectedView,
                 );
               },
             ),

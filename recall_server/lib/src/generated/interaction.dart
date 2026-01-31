@@ -21,7 +21,7 @@ abstract class Interaction
   Interaction._({
     this.id,
     required this.ownerId,
-    required this.contactId,
+    this.linkedContactId,
     this.contact,
     required this.date,
     required this.snippet,
@@ -35,7 +35,7 @@ abstract class Interaction
   factory Interaction({
     int? id,
     required int ownerId,
-    required int contactId,
+    int? linkedContactId,
     _i2.Contact? contact,
     required DateTime date,
     required String snippet,
@@ -50,7 +50,7 @@ abstract class Interaction
     return Interaction(
       id: jsonSerialization['id'] as int?,
       ownerId: jsonSerialization['ownerId'] as int,
-      contactId: jsonSerialization['contactId'] as int,
+      linkedContactId: jsonSerialization['linkedContactId'] as int?,
       contact: jsonSerialization['contact'] == null
           ? null
           : _i3.Protocol().deserialize<_i2.Contact>(
@@ -77,7 +77,7 @@ abstract class Interaction
 
   int ownerId;
 
-  int contactId;
+  int? linkedContactId;
 
   _i2.Contact? contact;
 
@@ -104,7 +104,7 @@ abstract class Interaction
   Interaction copyWith({
     int? id,
     int? ownerId,
-    int? contactId,
+    int? linkedContactId,
     _i2.Contact? contact,
     DateTime? date,
     String? snippet,
@@ -120,7 +120,7 @@ abstract class Interaction
       '__className__': 'Interaction',
       if (id != null) 'id': id,
       'ownerId': ownerId,
-      'contactId': contactId,
+      if (linkedContactId != null) 'linkedContactId': linkedContactId,
       if (contact != null) 'contact': contact?.toJson(),
       'date': date.toJson(),
       'snippet': snippet,
@@ -138,7 +138,7 @@ abstract class Interaction
       '__className__': 'Interaction',
       if (id != null) 'id': id,
       'ownerId': ownerId,
-      'contactId': contactId,
+      if (linkedContactId != null) 'linkedContactId': linkedContactId,
       if (contact != null) 'contact': contact?.toJsonForProtocol(),
       'date': date.toJson(),
       'snippet': snippet,
@@ -186,7 +186,7 @@ class _InteractionImpl extends Interaction {
   _InteractionImpl({
     int? id,
     required int ownerId,
-    required int contactId,
+    int? linkedContactId,
     _i2.Contact? contact,
     required DateTime date,
     required String snippet,
@@ -198,7 +198,7 @@ class _InteractionImpl extends Interaction {
   }) : super._(
          id: id,
          ownerId: ownerId,
-         contactId: contactId,
+         linkedContactId: linkedContactId,
          contact: contact,
          date: date,
          snippet: snippet,
@@ -216,7 +216,7 @@ class _InteractionImpl extends Interaction {
   Interaction copyWith({
     Object? id = _Undefined,
     int? ownerId,
-    int? contactId,
+    Object? linkedContactId = _Undefined,
     Object? contact = _Undefined,
     DateTime? date,
     String? snippet,
@@ -229,7 +229,9 @@ class _InteractionImpl extends Interaction {
     return Interaction(
       id: id is int? ? id : this.id,
       ownerId: ownerId ?? this.ownerId,
-      contactId: contactId ?? this.contactId,
+      linkedContactId: linkedContactId is int?
+          ? linkedContactId
+          : this.linkedContactId,
       contact: contact is _i2.Contact? ? contact : this.contact?.copyWith(),
       date: date ?? this.date,
       snippet: snippet ?? this.snippet,
@@ -250,8 +252,8 @@ class InteractionUpdateTable extends _i1.UpdateTable<InteractionTable> {
     value,
   );
 
-  _i1.ColumnValue<int, int> contactId(int value) => _i1.ColumnValue(
-    table.contactId,
+  _i1.ColumnValue<int, int> linkedContactId(int? value) => _i1.ColumnValue(
+    table.linkedContactId,
     value,
   );
 
@@ -300,8 +302,8 @@ class InteractionTable extends _i1.Table<int?> {
       'ownerId',
       this,
     );
-    contactId = _i1.ColumnInt(
-      'contactId',
+    linkedContactId = _i1.ColumnInt(
+      'linkedContactId',
       this,
     );
     date = _i1.ColumnDateTime(
@@ -339,7 +341,7 @@ class InteractionTable extends _i1.Table<int?> {
 
   late final _i1.ColumnInt ownerId;
 
-  late final _i1.ColumnInt contactId;
+  late final _i1.ColumnInt linkedContactId;
 
   _i2.ContactTable? _contact;
 
@@ -361,7 +363,7 @@ class InteractionTable extends _i1.Table<int?> {
     if (_contact != null) return _contact!;
     _contact = _i1.createRelationTable(
       relationFieldName: 'contact',
-      field: Interaction.t.contactId,
+      field: Interaction.t.linkedContactId,
       foreignField: _i2.Contact.t.id,
       tableRelation: tableRelation,
       createTable: (foreignTableRelation) =>
@@ -374,7 +376,7 @@ class InteractionTable extends _i1.Table<int?> {
   List<_i1.Column> get columns => [
     id,
     ownerId,
-    contactId,
+    linkedContactId,
     date,
     snippet,
     subject,
@@ -431,6 +433,8 @@ class InteractionRepository {
   const InteractionRepository._();
 
   final attachRow = const InteractionAttachRowRepository._();
+
+  final detachRow = const InteractionDetachRowRepository._();
 
   /// Returns a list of [Interaction]s matching the given query parameters.
   ///
@@ -692,7 +696,7 @@ class InteractionAttachRowRepository {
   const InteractionAttachRowRepository._();
 
   /// Creates a relation between the given [Interaction] and [Contact]
-  /// by setting the [Interaction]'s foreign key `contactId` to refer to the [Contact].
+  /// by setting the [Interaction]'s foreign key `linkedContactId` to refer to the [Contact].
   Future<void> contact(
     _i1.Session session,
     Interaction interaction,
@@ -706,10 +710,36 @@ class InteractionAttachRowRepository {
       throw ArgumentError.notNull('contact.id');
     }
 
-    var $interaction = interaction.copyWith(contactId: contact.id);
+    var $interaction = interaction.copyWith(linkedContactId: contact.id);
     await session.db.updateRow<Interaction>(
       $interaction,
-      columns: [Interaction.t.contactId],
+      columns: [Interaction.t.linkedContactId],
+      transaction: transaction,
+    );
+  }
+}
+
+class InteractionDetachRowRepository {
+  const InteractionDetachRowRepository._();
+
+  /// Detaches the relation between this [Interaction] and the [Contact] set in `contact`
+  /// by setting the [Interaction]'s foreign key `linkedContactId` to `null`.
+  ///
+  /// This removes the association between the two models without deleting
+  /// the related record.
+  Future<void> contact(
+    _i1.Session session,
+    Interaction interaction, {
+    _i1.Transaction? transaction,
+  }) async {
+    if (interaction.id == null) {
+      throw ArgumentError.notNull('interaction.id');
+    }
+
+    var $interaction = interaction.copyWith(linkedContactId: null);
+    await session.db.updateRow<Interaction>(
+      $interaction,
+      columns: [Interaction.t.linkedContactId],
       transaction: transaction,
     );
   }

@@ -34,22 +34,7 @@ class SettingsScreen extends ConsumerWidget {
       backgroundColor: AppColors.backgroundDark,
       body: Stack(
         children: [
-          // Background Glow
-          Positioned(
-            top: -100,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Container(
-                width: 300,
-                height: 300,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.15), // Reduced for subtle effect
-                  shape: BoxShape.circle,
-                ),
-              ).makeBlur(80),
-            ),
-          ),
+          // Background Glow removed per user request
           
           SafeArea(
             child: Column(
@@ -218,10 +203,10 @@ class SettingsScreen extends ConsumerWidget {
                                   borderRadius: BorderRadius.circular(6),
                                   border: Border.all(color: const Color(0xFF34D399).withOpacity(0.2)),
                                 ),
-                                child: const Text(
-                                  'Active (Offline)',
+                                child: Text(
+                                  (dashboardState.data?.isSyncing ?? false) ? 'Syncing...' : 'Active',
                                   style: TextStyle(
-                                    color: Color(0xFF34D399),
+                                    color: (dashboardState.data?.isSyncing ?? false) ? AppColors.primary : const Color(0xFF34D399),
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
                                   ),

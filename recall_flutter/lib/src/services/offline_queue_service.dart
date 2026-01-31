@@ -58,6 +58,18 @@ class OfflineQueueService {
              data['subject'],
              data['body'],
            );
+        } else if (actionMap['type'] == 'voice_note') {
+           // Queue voice note processing
+           await client.recall.processVoiceNote(data['transcript']);
+        } else if (actionMap['type'] == 'delete_agenda_item') {
+           await client.dashboard.deleteAgendaItem(data['id']);
+        } else if (actionMap['type'] == 'send_message') {
+           // Queue chat message
+           // Note: We might lose the immediate UI context, but the server will process it.
+           // Ideally we should sync chat history after this.
+           await client.recall.askRecall(data['query'], chatSessionId: data['sessionId']);
+        } else if (actionMap['type'] == 'delete_chat_session') {
+           await client.recall.deleteChatSession(data['id']);
         }
         
         // If successful, delete

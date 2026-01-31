@@ -20,6 +20,11 @@ import '../../network/views/network_screen.dart';
 import '../../notifications/views/notification_screen.dart';
 import '../../agenda/views/agenda_screen.dart';
 import '../../audio/views/voice_recording_sheet.dart';
+import '../../agenda/providers/agenda_provider.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import '../../../services/notification_service.dart';
+import 'widgets/alive_background.dart';
+import 'widgets/radar_scan.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -30,9 +35,10 @@ class DashboardScreen extends ConsumerStatefulWidget {
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   int _currentIndex = 0;
+  late PageController _pageController; // Added PageController
   
   // Compose Logic State
-  bool _isComposing = false; // Used for UI visibility
+  bool _isComposing = false; 
   bool _isSending = false;
   final TextEditingController _subjectController = TextEditingController();
   final TextEditingController _bodyController = TextEditingController();
@@ -57,11 +63,28 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   void initState() {
     super.initState();
+    print("LIFECYCLE: DashboardScreen Mounted");
+    _pageController = PageController(); // Initialize
     _checkServerConnection();
+    _ensureAuth();
+  }
+
+  Future<void> _ensureAuth() async {
+    // If we skipped splash (key is present) but google user logic didn't run, run it now in background
+    if (currentGoogleUser == null) {
+      // Small delay to let UI render first
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (!mounted) return;
+      if (!mounted) return;
+      print('Dashboard: Background Auth Check... User is NULL. Attempting auto-login.');
+      final result = await ref.read(authControllerProvider).tryAutoLogin();
+      print('Dashboard: Auto-login result: $result');
+    }
   }
 
   @override
   void dispose() {
+    _pageController.dispose(); // Dispose
     _subjectController.dispose();
     _bodyController.dispose();
     super.dispose();
@@ -90,21 +113,37 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundDark,
-      body: IndexedStack(
-        index: _currentIndex,
+      body: Stack(
         children: [
-          _HomeTab(
-            userFirstName: _userFirstName,
-            userImageUrl: _userImageUrl,
+          const AliveBackground(), // The living gradient
+          PageView(
+            controller: _pageController,
+            physics: const BouncingScrollPhysics(), // Premium feel
+            onPageChanged: (index) {
+              setState(() => _currentIndex = index);
+            },
+            children: [
+              _HomeTab(
+                userFirstName: _userFirstName,
+                userImageUrl: _userImageUrl,
+              ),
+              const AskRecallScreen(),
+              const NetworkScreen(),
+              const AgendaScreen(), // Index 3
+            ],
           ),
-          const AskRecallScreen(),
-          const NetworkScreen(),
-          const AgendaScreen(), // Index 3
         ],
       ),
       bottomNavigationBar: _PremiumBottomNav(
         currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
+        onTap: (index) {
+          setState(() => _currentIndex = index);
+          _pageController.animateToPage(
+            index,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+        },
         onVoiceNotePressed: _onVoiceNotePressed,
       ),
     );
@@ -128,20 +167,44 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       
       // Sending to chat as user message for now to test flow
       // In next step, we will call specialized endpoint
-      final result = await ref.read(dashboardProvider.notifier).processVoiceNote(transcript);
+      try {
+        final result = await ref.read(dashboardProvider.notifier).processVoiceNote(transcript);
+        
+        // Refresh Agenda to ensure local notifications are scheduled
+        ref.invalidate(agendaProvider(AgendaView.present));
+        ref.invalidate(agendaProvider(AgendaView.future));
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result),
-            duration: const Duration(seconds: 4),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result),
+              duration: const Duration(seconds: 4),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: AppColors.primary,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error processing note: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
       
       // Optionally switch to Agenda if relevant
       // setState(() => _currentIndex = 1);
+    } else {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No speech detected. Try again.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
     }
   }
 }
@@ -170,11 +233,17 @@ class _HomeTab extends ConsumerWidget {
     final showLoadingOverlay = isLoading && dashboardState.data == null;
     final isOffline = !connectivityState.isConnected;
 
+    final agendaState = ref.watch(agendaProvider(AgendaView.present));
+    final upcomingEventsCount = agendaState.items.where((i) => i.startTime.isAfter(DateTime.now())).length;
+
     return SafeArea(
       child: Stack(
         children: [
           RefreshIndicator(
-            onRefresh: () => ref.read(dashboardProvider.notifier).refresh(),
+            onRefresh: () async {
+              ref.read(dashboardProvider.notifier).refresh();
+              ref.refresh(agendaProvider(AgendaView.present));
+            },
             color: AppColors.primary,
             backgroundColor: AppColors.backgroundDark,
             child: SingleChildScrollView(
@@ -189,6 +258,7 @@ class _HomeTab extends ConsumerWidget {
                       firstName: userFirstName,
                       imageUrl: userImageUrl,
                       driftingCount: dashboardState.data?.driftingCount ?? 0,
+                      upcomingEventsCount: upcomingEventsCount,
                       isOffline: isOffline,
                     ),
                   ),
@@ -361,6 +431,7 @@ class _PremiumHeader extends StatelessWidget {
   final String firstName;
   final String? imageUrl;
   final int driftingCount;
+  final int upcomingEventsCount;
   final bool isOffline;
 
   const _PremiumHeader({
@@ -368,8 +439,16 @@ class _PremiumHeader extends StatelessWidget {
     required this.firstName,
     this.imageUrl,
     required this.driftingCount,
+    required this.upcomingEventsCount,
     this.isOffline = false,
   });
+
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -377,46 +456,53 @@ class _PremiumHeader extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            RichText(
-              text: TextSpan(
-                style: const TextStyle(
-                  fontFamily: 'Space Grotesk', // Ensure font is responsive if missed
-                  fontSize: 28,
-                  height: 1.1,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-                children: [
-                  const TextSpan(text: 'Good Morning,\n'),
-                  TextSpan(
-                    text: '$firstName.',
-                    style: const TextStyle(color: AppColors.primary),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              RichText(
+                text: TextSpan(
+                  style: const TextStyle(
+                    fontFamily: 'Space Grotesk', // Ensure font is responsive if missed
+                    fontSize: 28,
+                    height: 1.1,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-            RichText(
-              text: TextSpan(
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textSecondary,
+                  children: [
+                    TextSpan(text: '${_getGreeting()},\n'),
+                    TextSpan(
+                      text: '$firstName.',
+                      style: const TextStyle(color: AppColors.primary),
+                    ),
+                  ],
                 ),
-                children: [
-                  const TextSpan(text: 'You have '),
-                  TextSpan(
-                    text: '$driftingCount relationships',
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                  ),
-                  const TextSpan(text: ' drifting.'),
-                ],
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              RichText(
+                text: TextSpan(
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textSecondary,
+                  ),
+                  children: [
+                    const TextSpan(text: 'I have found '),
+                    TextSpan(
+                      text: '$driftingCount relationships',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                    const TextSpan(text: ' drifting and '),
+                    TextSpan(
+                      text: '$upcomingEventsCount upcoming',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                    const TextSpan(text: ' events today.'),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
             Row(
               children: [
@@ -426,10 +512,54 @@ class _PremiumHeader extends StatelessWidget {
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.white.withOpacity(0.1)),
                   ),
-                  margin: const EdgeInsets.only(right: 12),
-                  child: IconButton(
-                    icon: const Icon(Icons.notifications_outlined, color: Colors.white, size: 24),
-                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationScreen())),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(50),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationScreen())),
+                    onLongPress: () async {
+                      // 1. Check permissions live
+                      final androidPlugin = NotificationService().flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+                      final bool? granted = await androidPlugin?.areNotificationsEnabled();
+                      
+                      if (!context.mounted) return;
+                      
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Testing... Permissions Enabled: $granted'), 
+                          duration: const Duration(seconds: 1),
+                          backgroundColor: granted == true ? AppColors.primary : Colors.red,
+                        ),
+                      );
+                      
+                      if (granted != true) {
+                        return;
+                      }
+
+                      // 2. Fire Notification
+                      try {
+                        const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+                          'recall_alerts_v2', // CHANGED: New Channel ID to reset OS settings
+                          'Recall Alerts',
+                          importance: Importance.max,
+                          priority: Priority.high,
+                          fullScreenIntent: true,
+                        );
+                        final NotificationDetails details = NotificationDetails(android: androidDetails);
+                        
+                        await NotificationService().flutterLocalNotificationsPlugin.show(
+                          777, 
+                          'Manual Test 🔔', 
+                          'If you see this, IT WORKS!', 
+                          details,
+                        );
+                      } catch (e) {
+                         if (!context.mounted) return;
+                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+                      }
+                    },
+                    child: const Padding(
+                      padding: EdgeInsets.all(12.0),
+                      child: Icon(Icons.notifications_outlined, color: Colors.white, size: 24),
+                    ),
                   ),
                 ),
                 GestureDetector(
@@ -555,13 +685,16 @@ class _DriftingHighlightCard extends StatelessWidget {
                           )
                         ]
                       ),
-                      child: CircleAvatar(
-                        radius: 30,
-                        backgroundColor: AppColors.surfaceDark,
-                        backgroundImage: contact.avatarUrl != null ? NetworkImage(contact.avatarUrl!) : null,
-                        child: contact.avatarUrl == null
-                            ? Text(contact.name?[0] ?? '?', style: const TextStyle(fontSize: 24, color: Colors.white))
-                            : null,
+                      child: Hero(
+                        tag: 'contact-${contact.id}',
+                        child: CircleAvatar(
+                          radius: 30,
+                          backgroundColor: AppColors.surfaceDark,
+                          backgroundImage: contact.avatarUrl != null ? NetworkImage(contact.avatarUrl!) : null,
+                          child: contact.avatarUrl == null
+                              ? Text(contact.name?[0] ?? '?', style: const TextStyle(fontSize: 24, color: Colors.white))
+                              : null,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -905,12 +1038,12 @@ class _EmptyContextState extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(8), // Reduced padding for larger radar
             decoration: BoxDecoration(
               color: AppColors.primary.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.psychology, color: AppColors.primary),
+            child: RadarScan(size: 48, color: AppColors.primary),
           ),
           const SizedBox(width: 16),
           Expanded(

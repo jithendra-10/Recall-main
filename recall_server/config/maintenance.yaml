@@ -1,0 +1,39 @@
+# Maintenance configuration to avoid port conflicts with development
+apiServer:
+  port: 8093
+  publicHost: localhost
+  publicPort: 8093
+  publicScheme: http
+  host: 0.0.0.0
+
+insightsServer:
+  port: 8091
+  publicHost: localhost
+  publicPort: 8091
+  publicScheme: http
+  host: 0.0.0.0
+
+webServer:
+  port: 8092
+  publicHost: localhost
+  publicPort: 8092
+  publicScheme: http
+  host: 0.0.0.0
+
+database:
+  host: localhost
+  port: 8090
+  name: recall
+  user: postgres
+
+redis:
+  enabled: false
+  host: localhost
+  port: 8091
+
+maxRequestSize: 524288
+
+sessionLogs:
+  persistentEnabled: true
+  consoleEnabled: true
+  consoleLogFormat: text

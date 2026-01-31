@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:recall_flutter/core/ip_config.dart';
 import 'package:serverpod_flutter/serverpod_flutter.dart';
+import 'dart:convert';
 import 'package:recall_client/recall_client.dart';
 import 'package:recall_flutter/main.dart';
 import 'package:recall_flutter/src/services/cache_service.dart';
@@ -45,9 +46,12 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
       final cachedJson = _cache.getCachedData('dashboard_data');
       if (cachedJson != null) {
         try {
-          // Cast purely to be safe, Hive returns Map<dynamic, dynamic>
-          final Map<String, dynamic> jsonMap = Map<String, dynamic>.from(cachedJson as Map);
-          final cachedData = DashboardData.fromJson(jsonMap);
+          // Hive returns Map<dynamic, dynamic> which fails for nested objects in Serverpod
+          // Round-trip through JSON to ensure clean Map<String, dynamic> structure
+          // This is a robust fix for "type 'identityhashmap' is not a subtype of type 'map<string, dynamic>'" errors
+          final sanitizedJson = jsonDecode(jsonEncode(cachedJson));
+          
+          final cachedData = DashboardData.fromJson(sanitizedJson);
           state = DashboardState(isLoading: false, data: cachedData);
         } catch (e) {
           print('Cache parse error: $e');
@@ -94,10 +98,9 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
     } catch (e) {
       print('Dashboard fetch error: $e');
       
-      // If we have data (from cache or previous fetch), don't wipe it out with an error screen
+      // If we have data (from cache or previous fetch), don't wipe it out.
       if (state.data != null) {
-        // Maybe show a snackbar or subtle indicator via a separate provider/state?
-        // For now, just keep the old data.
+        state = state.copyWith(isLoading: false, error: 'Offline Mode'); 
       } else {
         state = DashboardState(
           isLoading: false,
@@ -132,7 +135,12 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
 
   Future<void> triggerSync() async {
     try {
-      await client.dashboard.triggerSync();
+      // Trigger both Gmail and Calendar sync
+      // Use wait to run in parallel
+      await Future.wait<void>([
+        client.dashboard.triggerSync(),
+        client.dashboard.triggerCalendarSync(),
+      ]);
       await fetchDashboardData();
     } catch (e) {
       print('Sync error: $e');
@@ -142,14 +150,23 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
   Future<String> processVoiceNote(String transcript) async {
     state = state.copyWith(isLoading: true);
     try {
-      final result = await client.recall.processVoiceNote(transcript);
+      final result = await client.recall.processVoiceNote(
+        transcript, 
+        clientReportedId: sessionManager.signedInUser?.id,
+      );
       // Refresh data as voice note might have added agenda items or contacts
       await fetchDashboardData(); 
       return result;
     } catch (e) {
       print('Voice processing error: $e');
       state = state.copyWith(isLoading: false);
-      return "Failed to process voice note. Please try again.";
+      
+      // Queue for offline processing
+      await _offlineQueue.queueAction('voice_note', {
+        'transcript': transcript,
+      });
+      
+      return "Offline: Voice note queued for processing.";
     }
   }
 }
@@ -269,39 +286,88 @@ class ChatState {
 /// Chat notifier for Ask RECALL
 class ChatNotifier extends StateNotifier<ChatState> {
   ChatNotifier() : super(ChatState()) {
-    loadSessions();
+    loadSessions(init: true);
   }
 
-  Future<void> loadSessions() async {
+  final _cache = CacheService();
+
+  Future<void> loadSessions({bool init = false}) async {
+    // 1. CACHE
+    if (state.sessions.isEmpty) {
+      final cachedList = _cache.getCachedData('chat_sessions');
+      if (cachedList != null && cachedList is List) {
+        try {
+          final sessions = cachedList.map((e) {
+             return ChatSession.fromJson(Map<String, dynamic>.from(e as Map));
+          }).toList();
+          state = state.copyWith(sessions: sessions);
+        } catch (e) {
+           print('Chat sessions cache error: $e');
+        }
+      }
+    }
+
+    // 2. NETWORK
     try {
       final sessions = await client.recall.getChatSessions(limit: 20);
-      // If we have an active session, keep it, else maybe load the most recent one?
-      // For now, just load the list.
       state = state.copyWith(sessions: sessions);
       
-      // If we have no active session and sessions exist, load the latest one?
-      // Or let user start fresh? "Ask Recall" usually implies fresh or latest.
-      // Let's load the latest one by default to be helpful.
-      if (state.activeSessionId == null && sessions.isNotEmpty) {
+      // 3. SAVE
+      final jsonList = sessions.map((s) => s.toJson()).toList();
+      await _cache.cacheData('chat_sessions', jsonList);
+
+      if (init && state.activeSessionId == null && sessions.isNotEmpty) {
          selectSession(sessions.first.id!);
       }
     } catch (e) {
       print('Load sessions error: $e');
+      // Keep cached data
     }
   }
 
   Future<void> selectSession(int sessionId) async {
-    state = state.copyWith(isLoading: true, activeSessionId: sessionId);
+    // 1. CACHE (for specific session)
+    final cacheKey = 'chat_history_$sessionId';
+    
+    // Optimistic UI from cache
+    final cachedList = _cache.getCachedData(cacheKey);
+    List<ChatMessage>? cachedMessages;
+    
+    if (cachedList != null && cachedList is List) {
+       try {
+         cachedMessages = cachedList.map((e) => ChatMessage.fromJson(Map<String, dynamic>.from(e as Map))).toList();
+         state = state.copyWith(
+            messages: cachedMessages, 
+            isLoading: true, // Still showing loading indicator for net fetch
+            activeSessionId: sessionId
+         );
+       } catch (e) {
+         print('Chat history cache error: $e');
+       }
+    } else {
+        state = state.copyWith(isLoading: true, activeSessionId: sessionId);
+    }
+
+    // 2. NETWORK
     try {
       final history = await client.recall.getChatMessages(chatSessionId: sessionId, limit: 50);
       state = state.copyWith(
         messages: history,
         isLoading: false,
-        activeSessionId: sessionId, // Validate
+        activeSessionId: sessionId,
       );
+      
+      // 3. SAVE
+      final jsonList = history.map((m) => m.toJson()).toList();
+      await _cache.cacheData(cacheKey, jsonList);
+      
     } catch (e) {
       print('Load history error: $e');
-      state = state.copyWith(isLoading: false);
+      if (cachedMessages != null) {
+        state = state.copyWith(isLoading: false, messages: cachedMessages);
+      } else {
+        state = state.copyWith(isLoading: false);
+      }
     }
   }
 
@@ -365,19 +431,66 @@ class ChatNotifier extends StateNotifier<ChatState> {
         isLoading: false,
         activeSessionId: newSessionId,
       );
+      state = state.copyWith(
+        messages: [...state.messages, response],
+        isLoading: false,
+        activeSessionId: newSessionId,
+      );
+      
+      // Update cache for this session
+      final cacheKey = 'chat_history_$newSessionId';
+      final jsonList = state.messages.map((m) => m.toJson()).toList();
+      await _cache.cacheData(cacheKey, jsonList);
+
     } catch (e) {
       print('Chat error: $e');
-      final errorMessage = ChatMessage(
-        role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.',
-        timestamp: DateTime.now().toUtc(),
-        chatSessionId: 0,
-        ownerId: 0,
-      );
-      state = state.copyWith(
-        messages: [...state.messages, errorMessage],
-        isLoading: false,
-      );
+      
+      // Queue offline message
+      final offlineQueue = OfflineQueueService();
+      await offlineQueue.queueAction('send_message', {
+        'query': query,
+        'sessionId': state.activeSessionId
+      });
+
+      // Show optimistic "Sent (Offline)" state? 
+      // For now, let's keep the user message but add a system note or just leave it.
+      // The user message is already in state.messages.
+      
+      state = state.copyWith(isLoading: false);
+    }
+  }
+
+  Future<void> deleteSession(int sessionId) async {
+    // Optimistic Update
+    final previousSessions = state.sessions;
+    state = state.copyWith(
+      sessions: state.sessions.where((s) => s.id != sessionId).toList(),
+    );
+    
+    // If active session was deleted, clear it
+    if (state.activeSessionId == sessionId) {
+      startNewChat();
+    }
+
+    try {
+      final success = await client.recall.deleteChatSession(sessionId);
+      if (!success) {
+         // Queue instead of reverting
+         throw Exception('Server failed');
+      }
+      // Update cache
+      final jsonList = state.sessions.map((s) => s.toJson()).toList();
+      await _cache.cacheData('chat_sessions', jsonList);
+
+    } catch (e) {
+      print('Delete session error: $e');
+      // Queue action
+      final offlineQueue = OfflineQueueService();
+      await offlineQueue.queueAction('delete_chat_session', {'id': sessionId});
+      
+      // Update cache assuming success
+      final jsonList = state.sessions.map((s) => s.toJson()).toList();
+      await _cache.cacheData('chat_sessions', jsonList);
     }
   }
 

@@ -56,6 +56,60 @@ class _NetworkScreenState extends ConsumerState<NetworkScreen> {
     }
   }
 
+  Future<void> _deleteContact(Contact contact) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceDark,
+        title: const Text('Delete Contact?', style: TextStyle(color: Colors.white)),
+        content: Text(
+          'Are you sure you want to delete ${contact.name ?? 'this contact'}?\n\n'
+          'This will remove them from your network, but keep past interactions linked to "Unknown".',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete', style: TextStyle(color: Colors.redAccent)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      if (contact.id == null) return;
+      
+      // Optimistic update? Or loading state?
+      // Since it's fast, just await.
+      
+      final success = await client.dashboard.deleteContact(contact.id!);
+      
+      if (!mounted) return;
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Contact deleted')),
+        );
+        _refresh();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to delete contact')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final contactsAsync = ref.watch(contactsProvider);
@@ -189,6 +243,7 @@ class _NetworkScreenState extends ConsumerState<NetworkScreen> {
                     return _ContactCard(
                       contact: filtered[index],
                       onDraftPressed: () => _showDraftComposer(filtered[index]),
+                      onDeletePressed: () => _deleteContact(filtered[index]),
                     );
                   },
                 );
@@ -242,10 +297,12 @@ class _NetworkScreenState extends ConsumerState<NetworkScreen> {
 class _ContactCard extends StatelessWidget {
   final Contact contact;
   final VoidCallback onDraftPressed;
+  final VoidCallback onDeletePressed;
 
   const _ContactCard({
     required this.contact,
     required this.onDraftPressed,
+    required this.onDeletePressed,
   });
 
   @override
@@ -327,6 +384,16 @@ class _ContactCard extends StatelessWidget {
                         padding: EdgeInsets.zero,
                         icon: const Icon(Icons.edit_note, color: AppColors.primary, size: 20),
                         onPressed: onDraftPressed,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    SizedBox(
+                      width: 32, 
+                      height: 32,
+                      child: IconButton(
+                        padding: EdgeInsets.zero,
+                        icon: const Icon(Icons.delete_outline, color: Colors.white30, size: 18),
+                        onPressed: onDeletePressed,
                       ),
                     ),
                   ],

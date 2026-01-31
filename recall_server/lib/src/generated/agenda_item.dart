@@ -21,7 +21,7 @@ abstract class AgendaItem
   AgendaItem._({
     this.id,
     required this.ownerId,
-    required this.contactId,
+    this.linkedContactId,
     this.contact,
     this.interactionId,
     required this.title,
@@ -37,7 +37,7 @@ abstract class AgendaItem
   factory AgendaItem({
     int? id,
     required int ownerId,
-    required int contactId,
+    int? linkedContactId,
     _i2.Contact? contact,
     int? interactionId,
     required String title,
@@ -54,7 +54,7 @@ abstract class AgendaItem
     return AgendaItem(
       id: jsonSerialization['id'] as int?,
       ownerId: jsonSerialization['ownerId'] as int,
-      contactId: jsonSerialization['contactId'] as int,
+      linkedContactId: jsonSerialization['linkedContactId'] as int?,
       contact: jsonSerialization['contact'] == null
           ? null
           : _i3.Protocol().deserialize<_i2.Contact>(
@@ -89,7 +89,7 @@ abstract class AgendaItem
 
   int ownerId;
 
-  int contactId;
+  int? linkedContactId;
 
   _i2.Contact? contact;
 
@@ -120,7 +120,7 @@ abstract class AgendaItem
   AgendaItem copyWith({
     int? id,
     int? ownerId,
-    int? contactId,
+    int? linkedContactId,
     _i2.Contact? contact,
     int? interactionId,
     String? title,
@@ -138,7 +138,7 @@ abstract class AgendaItem
       '__className__': 'AgendaItem',
       if (id != null) 'id': id,
       'ownerId': ownerId,
-      'contactId': contactId,
+      if (linkedContactId != null) 'linkedContactId': linkedContactId,
       if (contact != null) 'contact': contact?.toJson(),
       if (interactionId != null) 'interactionId': interactionId,
       'title': title,
@@ -158,7 +158,7 @@ abstract class AgendaItem
       '__className__': 'AgendaItem',
       if (id != null) 'id': id,
       'ownerId': ownerId,
-      'contactId': contactId,
+      if (linkedContactId != null) 'linkedContactId': linkedContactId,
       if (contact != null) 'contact': contact?.toJsonForProtocol(),
       if (interactionId != null) 'interactionId': interactionId,
       'title': title,
@@ -208,7 +208,7 @@ class _AgendaItemImpl extends AgendaItem {
   _AgendaItemImpl({
     int? id,
     required int ownerId,
-    required int contactId,
+    int? linkedContactId,
     _i2.Contact? contact,
     int? interactionId,
     required String title,
@@ -222,7 +222,7 @@ class _AgendaItemImpl extends AgendaItem {
   }) : super._(
          id: id,
          ownerId: ownerId,
-         contactId: contactId,
+         linkedContactId: linkedContactId,
          contact: contact,
          interactionId: interactionId,
          title: title,
@@ -242,7 +242,7 @@ class _AgendaItemImpl extends AgendaItem {
   AgendaItem copyWith({
     Object? id = _Undefined,
     int? ownerId,
-    int? contactId,
+    Object? linkedContactId = _Undefined,
     Object? contact = _Undefined,
     Object? interactionId = _Undefined,
     String? title,
@@ -257,7 +257,9 @@ class _AgendaItemImpl extends AgendaItem {
     return AgendaItem(
       id: id is int? ? id : this.id,
       ownerId: ownerId ?? this.ownerId,
-      contactId: contactId ?? this.contactId,
+      linkedContactId: linkedContactId is int?
+          ? linkedContactId
+          : this.linkedContactId,
       contact: contact is _i2.Contact? ? contact : this.contact?.copyWith(),
       interactionId: interactionId is int? ? interactionId : this.interactionId,
       title: title ?? this.title,
@@ -280,8 +282,8 @@ class AgendaItemUpdateTable extends _i1.UpdateTable<AgendaItemTable> {
     value,
   );
 
-  _i1.ColumnValue<int, int> contactId(int value) => _i1.ColumnValue(
-    table.contactId,
+  _i1.ColumnValue<int, int> linkedContactId(int? value) => _i1.ColumnValue(
+    table.linkedContactId,
     value,
   );
 
@@ -343,8 +345,8 @@ class AgendaItemTable extends _i1.Table<int?> {
       'ownerId',
       this,
     );
-    contactId = _i1.ColumnInt(
-      'contactId',
+    linkedContactId = _i1.ColumnInt(
+      'linkedContactId',
       this,
     );
     interactionId = _i1.ColumnInt(
@@ -389,7 +391,7 @@ class AgendaItemTable extends _i1.Table<int?> {
 
   late final _i1.ColumnInt ownerId;
 
-  late final _i1.ColumnInt contactId;
+  late final _i1.ColumnInt linkedContactId;
 
   _i2.ContactTable? _contact;
 
@@ -415,7 +417,7 @@ class AgendaItemTable extends _i1.Table<int?> {
     if (_contact != null) return _contact!;
     _contact = _i1.createRelationTable(
       relationFieldName: 'contact',
-      field: AgendaItem.t.contactId,
+      field: AgendaItem.t.linkedContactId,
       foreignField: _i2.Contact.t.id,
       tableRelation: tableRelation,
       createTable: (foreignTableRelation) =>
@@ -428,7 +430,7 @@ class AgendaItemTable extends _i1.Table<int?> {
   List<_i1.Column> get columns => [
     id,
     ownerId,
-    contactId,
+    linkedContactId,
     interactionId,
     title,
     description,
@@ -487,6 +489,8 @@ class AgendaItemRepository {
   const AgendaItemRepository._();
 
   final attachRow = const AgendaItemAttachRowRepository._();
+
+  final detachRow = const AgendaItemDetachRowRepository._();
 
   /// Returns a list of [AgendaItem]s matching the given query parameters.
   ///
@@ -748,7 +752,7 @@ class AgendaItemAttachRowRepository {
   const AgendaItemAttachRowRepository._();
 
   /// Creates a relation between the given [AgendaItem] and [Contact]
-  /// by setting the [AgendaItem]'s foreign key `contactId` to refer to the [Contact].
+  /// by setting the [AgendaItem]'s foreign key `linkedContactId` to refer to the [Contact].
   Future<void> contact(
     _i1.Session session,
     AgendaItem agendaItem,
@@ -762,10 +766,36 @@ class AgendaItemAttachRowRepository {
       throw ArgumentError.notNull('contact.id');
     }
 
-    var $agendaItem = agendaItem.copyWith(contactId: contact.id);
+    var $agendaItem = agendaItem.copyWith(linkedContactId: contact.id);
     await session.db.updateRow<AgendaItem>(
       $agendaItem,
-      columns: [AgendaItem.t.contactId],
+      columns: [AgendaItem.t.linkedContactId],
+      transaction: transaction,
+    );
+  }
+}
+
+class AgendaItemDetachRowRepository {
+  const AgendaItemDetachRowRepository._();
+
+  /// Detaches the relation between this [AgendaItem] and the [Contact] set in `contact`
+  /// by setting the [AgendaItem]'s foreign key `linkedContactId` to `null`.
+  ///
+  /// This removes the association between the two models without deleting
+  /// the related record.
+  Future<void> contact(
+    _i1.Session session,
+    AgendaItem agendaItem, {
+    _i1.Transaction? transaction,
+  }) async {
+    if (agendaItem.id == null) {
+      throw ArgumentError.notNull('agendaItem.id');
+    }
+
+    var $agendaItem = agendaItem.copyWith(linkedContactId: null);
+    await session.db.updateRow<AgendaItem>(
+      $agendaItem,
+      columns: [AgendaItem.t.linkedContactId],
       transaction: transaction,
     );
   }

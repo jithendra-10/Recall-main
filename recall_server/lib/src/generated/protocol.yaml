@@ -17,9 +17,15 @@ dashboard:
   - storeRefreshToken:
   - getSetupStatus:
   - getAgendaItems:
+  - deleteAgendaItem:
+  - triggerCalendarSync:
+  - getNotifications:
+  - addAgendaItem:
+  - deleteContact:
 debug:
   - seedTestData:
   - clearTestData:
+  - healData:
 email:
   - sendEmail:
 googleAuth:
@@ -27,6 +33,7 @@ googleAuth:
 recall:
   - getChatSessions:
   - getChatMessages:
+  - deleteChatSession:
   - askRecall:
   - processVoiceNote:
   - generateDraftEmail:

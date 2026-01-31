@@ -18,7 +18,7 @@ abstract class AgendaItem implements _i1.SerializableModel {
   AgendaItem._({
     this.id,
     required this.ownerId,
-    required this.contactId,
+    this.linkedContactId,
     this.contact,
     this.interactionId,
     required this.title,
@@ -34,7 +34,7 @@ abstract class AgendaItem implements _i1.SerializableModel {
   factory AgendaItem({
     int? id,
     required int ownerId,
-    required int contactId,
+    int? linkedContactId,
     _i2.Contact? contact,
     int? interactionId,
     required String title,
@@ -51,7 +51,7 @@ abstract class AgendaItem implements _i1.SerializableModel {
     return AgendaItem(
       id: jsonSerialization['id'] as int?,
       ownerId: jsonSerialization['ownerId'] as int,
-      contactId: jsonSerialization['contactId'] as int,
+      linkedContactId: jsonSerialization['linkedContactId'] as int?,
       contact: jsonSerialization['contact'] == null
           ? null
           : _i3.Protocol().deserialize<_i2.Contact>(
@@ -84,7 +84,7 @@ abstract class AgendaItem implements _i1.SerializableModel {
 
   int ownerId;
 
-  int contactId;
+  int? linkedContactId;
 
   _i2.Contact? contact;
 
@@ -112,7 +112,7 @@ abstract class AgendaItem implements _i1.SerializableModel {
   AgendaItem copyWith({
     int? id,
     int? ownerId,
-    int? contactId,
+    int? linkedContactId,
     _i2.Contact? contact,
     int? interactionId,
     String? title,
@@ -130,7 +130,7 @@ abstract class AgendaItem implements _i1.SerializableModel {
       '__className__': 'AgendaItem',
       if (id != null) 'id': id,
       'ownerId': ownerId,
-      'contactId': contactId,
+      if (linkedContactId != null) 'linkedContactId': linkedContactId,
       if (contact != null) 'contact': contact?.toJson(),
       if (interactionId != null) 'interactionId': interactionId,
       'title': title,
@@ -156,7 +156,7 @@ class _AgendaItemImpl extends AgendaItem {
   _AgendaItemImpl({
     int? id,
     required int ownerId,
-    required int contactId,
+    int? linkedContactId,
     _i2.Contact? contact,
     int? interactionId,
     required String title,
@@ -170,7 +170,7 @@ class _AgendaItemImpl extends AgendaItem {
   }) : super._(
          id: id,
          ownerId: ownerId,
-         contactId: contactId,
+         linkedContactId: linkedContactId,
          contact: contact,
          interactionId: interactionId,
          title: title,
@@ -190,7 +190,7 @@ class _AgendaItemImpl extends AgendaItem {
   AgendaItem copyWith({
     Object? id = _Undefined,
     int? ownerId,
-    int? contactId,
+    Object? linkedContactId = _Undefined,
     Object? contact = _Undefined,
     Object? interactionId = _Undefined,
     String? title,
@@ -205,7 +205,9 @@ class _AgendaItemImpl extends AgendaItem {
     return AgendaItem(
       id: id is int? ? id : this.id,
       ownerId: ownerId ?? this.ownerId,
-      contactId: contactId ?? this.contactId,
+      linkedContactId: linkedContactId is int?
+          ? linkedContactId
+          : this.linkedContactId,
       contact: contact is _i2.Contact? ? contact : this.contact?.copyWith(),
       interactionId: interactionId is int? ? interactionId : this.interactionId,
       title: title ?? this.title,

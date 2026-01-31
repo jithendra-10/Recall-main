@@ -97,7 +97,7 @@ class DebugEndpoint extends Endpoint {
       final interactions = [
         Interaction(
           ownerId: testUserId,
-          contactId: insertedContacts[1].id!, // Priya
+          linkedContactId: insertedContacts[1].id!, // Priya
           date: DateTime.now().subtract(const Duration(hours: 2)),
           snippet: 'Shared notes from the product sync meeting - discussed Q1 roadmap priorities',
           type: 'email_in',
@@ -105,7 +105,7 @@ class DebugEndpoint extends Endpoint {
         ),
         Interaction(
           ownerId: testUserId,
-          contactId: insertedContacts[2].id!, // Arjun
+          linkedContactId: insertedContacts[2].id!, // Arjun
           date: DateTime.now().subtract(const Duration(hours: 5)),
           snippet: 'You followed up on the Mumbai trip plans for next month',
           type: 'email_out',
@@ -113,7 +113,7 @@ class DebugEndpoint extends Endpoint {
         ),
         Interaction(
           ownerId: testUserId,
-          contactId: insertedContacts[3].id!, // Sneha
+          linkedContactId: insertedContacts[3].id!, // Sneha
           date: DateTime.now().subtract(const Duration(days: 1)),
           snippet: 'Quarterly review discussion - performance metrics and team goals',
           type: 'meeting',
@@ -121,7 +121,7 @@ class DebugEndpoint extends Endpoint {
         ),
         Interaction(
           ownerId: testUserId,
-          contactId: insertedContacts[0].id!, // Rahul
+          linkedContactId: insertedContacts[0].id!, // Rahul
           date: DateTime.now().subtract(const Duration(days: 28)),
           snippet: 'Internship referral at Google - his team is hiring for ML roles, promised to forward your resume',
           type: 'email_in',
@@ -129,7 +129,7 @@ class DebugEndpoint extends Endpoint {
         ),
         Interaction(
           ownerId: testUserId,
-          contactId: insertedContacts[4].id!, // Vikram
+          linkedContactId: insertedContacts[4].id!, // Vikram
           date: DateTime.now().subtract(const Duration(days: 21)),
           snippet: 'Discussed startup investment opportunity - follow up needed on term sheet',
           type: 'email_in',
@@ -175,6 +175,70 @@ class DebugEndpoint extends Endpoint {
       
       return 'Test data cleared';
     } catch (e) {
+      return 'Error: $e';
+    }
+  }
+
+  /// Heal orphaned data by linking to contacts
+  Future<String> healData(Session session) async {
+    session.log('🔎 Starting Data Healing Process...', level: LogLevel.info);
+    
+    try {
+      // 1. Fetch orphaned interactions
+      final interactions = await Interaction.db.find(
+        session,
+        where: (t) => t.linkedContactId.equals(null),
+      );
+      
+      // 2. Fetch all contacts
+      final contacts = await Contact.db.find(session);
+      
+      int linkedCount = 0;
+
+      for (var interaction in interactions) {
+         final text = (interaction.snippet + " " + (interaction.subject ?? "")).toLowerCase();
+         
+         for (var contact in contacts) {
+            final name = contact.name?.toLowerCase();
+            if (name != null && name.length > 3 && text.contains(name)) {
+               // Found a match!
+               interaction.linkedContactId = contact.id;
+               await Interaction.db.updateRow(session, interaction);
+               session.log('✅ Linked interaction to Contact: ${contact.name}');
+               linkedCount++;
+               break; 
+            }
+         }
+      }
+      
+      // Also fix Agenda Items if any
+      final agendaItems = await AgendaItem.db.find(
+        session,
+        where: (t) => t.linkedContactId.equals(null),
+      );
+      
+      int agendaCount = 0;
+      
+      for (var item in agendaItems) {
+         final text = (item.title + " " + (item.description ?? "")).toLowerCase();
+         
+         for (var contact in contacts) {
+            final name = contact.name?.toLowerCase();
+            if (name != null && name.length > 3 && text.contains(name)) {
+               // Found a match!
+               item.linkedContactId = contact.id;
+               await AgendaItem.db.updateRow(session, item);
+               session.log('✅ Linked agenda to Contact: ${contact.name}');
+               agendaCount++;
+               break;
+            }
+         }
+      }
+
+      return 'Healing Complete! Linked $linkedCount interactions and $agendaCount agenda items.';
+
+    } catch (e) {
+      session.log('Error during healing: $e', level: LogLevel.error);
       return 'Error: $e';
     }
   }

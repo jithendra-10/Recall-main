@@ -46,13 +46,27 @@ class DashboardEndpoint extends Endpoint {
 
       // AUTO-SYNC: If user has token but never synced (or manually cleared), trigger sync now
       bool autoSyncTriggered = false;
+      // Triggers if:
+      // 1. Has Token
+      // 2. NOT currently syncing
+      // 3. Last sync was > 5 minutes ago OR never synced
+      final isSyncing = userConfig?.isSyncing ?? false;
+      final lastSync = userConfig?.lastSyncTime;
+      final now = DateTime.now().toUtc();
+      
       if (userConfig != null && 
           userConfig.googleRefreshToken != null && 
-          (userConfig.lastSyncTime == null || 
-           DateTime.now().toUtc().difference(userConfig.lastSyncTime!).inMinutes > 3)) {
-        session.log('getDashboardData: Auto-triggering first sync for userId=$userId', level: LogLevel.info);
+          !isSyncing &&
+          (lastSync == null || now.difference(lastSync).inMinutes > 15)) {
+        
+        session.log('getDashboardData: Auto-triggering sync for userId=$userId', level: LogLevel.info);
         autoSyncTriggered = true;
-        // Run sync in background (don't await to avoid blocking dashboard load)
+        
+        // Optimistically set isSyncing to prevent double-triggers next call
+        userConfig.isSyncing = true;
+        // Don't await this, speed up dashboard load
+        UserConfig.db.updateRow(session, userConfig); 
+        
         _triggerSyncInternal(session, userId).catchError((e) {
           session.log('getDashboardData: Background sync error: $e', level: LogLevel.warning);
         });
@@ -75,7 +89,7 @@ class DashboardEndpoint extends Endpoint {
         // Get last interaction topic
         final lastInteraction = await Interaction.db.findFirstRow(
           session,
-          where: (t) => t.ownerId.equals(userId) & t.contactId.equals(nudgeContact.id!),
+          where: (t) => t.ownerId.equals(userId) & t.linkedContactId.equals(nudgeContact.id!),
           orderBy: (t) => t.date,
           orderDescending: true,
         );
@@ -92,16 +106,27 @@ class DashboardEndpoint extends Endpoint {
         include: Interaction.include(contact: Contact.include()),
       );
 
-      final recentInteractions = recentInteractionsRaw.map((i) => InteractionSummary(
-        contactName: i.contact?.name ?? i.contact?.email ?? 'Unknown',
-        contactEmail: i.contact?.email ?? '',
-        contactAvatarUrl: i.contact?.avatarUrl,
-        summary: i.snippet,
-        subject: i.subject,
-        body: i.body,
-        timestamp: i.date,
-        type: i.type,
-      )).toList();
+      final recentInteractions = recentInteractionsRaw.map((i) {
+        String displayName = i.contact?.name ?? i.contact?.email ?? 'Unknown';
+        
+        // Better fallback for unlinked items
+        if (i.contact == null) {
+          if (i.type == 'voice' || i.type == 'voice_note') displayName = 'Voice Note';
+          else if (i.type == 'meeting') displayName = 'Meeting';
+          else if (i.type == 'email_in' || i.type == 'email_out') displayName = 'Unknown Email';
+        }
+        
+        return InteractionSummary(
+          contactName: displayName,
+          contactEmail: i.contact?.email ?? '',
+          contactAvatarUrl: i.contact?.avatarUrl,
+          summary: i.snippet,
+          subject: i.subject,
+          body: i.body,
+          timestamp: i.date,
+          type: i.type,
+        );
+      }).toList();
 
       // Get top contacts by health score
       final topContacts = await Contact.db.find(
@@ -188,7 +213,7 @@ class DashboardEndpoint extends Endpoint {
 
     final interactions = await Interaction.db.find(
       session,
-      where: (t) => t.ownerId.equals(userId) & t.contactId.equals(contactId),
+      where: (t) => t.ownerId.equals(userId) & t.linkedContactId.equals(contactId),
       orderBy: (t) => t.date,
       orderDescending: true,
       limit: 20,
@@ -233,11 +258,19 @@ class DashboardEndpoint extends Endpoint {
     // Schedule the future call to run safely in background (detached from this HTTP session)
     // passing userConfig object as the payload (it is SerializableEntity)
     // Using registered name 'gmail_sync' from server.dart
-    await Serverpod.instance!.futureCallWithDelay(
-      'gmail_sync',
-      userConfig,
-      const Duration(seconds: 0),
-    );
+    try {
+      await Serverpod.instance!.futureCallWithDelay(
+        'gmail_sync',
+        userConfig,
+        const Duration(seconds: 0),
+      );
+    } catch (e) {
+      session.log('_triggerSyncInternal: Failed to schedule sync: $e', level: LogLevel.error);
+      // Revert syncing status
+      userConfig.isSyncing = false;
+      await UserConfig.db.updateRow(session, userConfig);
+      rethrow;
+    }
   }
 
 
@@ -430,5 +463,147 @@ class DashboardEndpoint extends Endpoint {
         contact: Contact.include(), // Include contact details for avatars
       ),
     );
+  }
+
+  /// Delete an agenda item
+  Future<bool> deleteAgendaItem(Session session, int agendaId) async {
+    final userIdentifier = session.authenticated?.userIdentifier;
+    final userId = userIdentifier != null ? int.parse(userIdentifier) : 1;
+
+    final item = await AgendaItem.db.findById(session, agendaId);
+    if (item == null || item.ownerId != userId) {
+      return false;
+    }
+
+    // Cascade Delete: Remove linked Interactions (Draft/Voice Logs)
+    // This prevents "Ghost" cards from appearing in the feed after the agenda is cleared.
+    // Matching by loose constraint since we don't have a direct FK yet.
+    if (item.description != null && item.description!.isNotEmpty) {
+      try {
+        final description = item.description!.replaceAll("'", "''"); // Escape quotes
+        await session.db.unsafeQuery(
+          '''
+          DELETE FROM recall_interaction 
+          WHERE "ownerId" = $userId 
+          AND "snippet" = '$description'
+          '''
+        );
+      } catch (e) {
+        session.log('Cascade delete error: $e', level: LogLevel.warning);
+      }
+    }
+
+    await AgendaItem.db.deleteRow(session, item);
+    return true;
+  }
+
+  /// Trigger a calendar sync manually
+  Future<void> triggerCalendarSync(Session session) async {
+    final userIdentifier = session.authenticated?.userIdentifier;
+    if (userIdentifier == null) return;
+    
+    final userId = int.parse(userIdentifier);
+    
+    // Fetch UserConfig to pass as SerializableEntity
+    final userConfig = await UserConfig.db.findFirstRow(
+      session,
+      where: (t) => t.userInfoId.equals(userId),
+    );
+    
+    if (userConfig != null) {
+      // Call the future call with UserConfig payload
+      await Serverpod.instance!.futureCallWithDelay(
+        'calendarSync', 
+        userConfig, 
+        const Duration(seconds: 0),
+      );
+    }
+  }
+  /// Get notifications for the user
+  Future<List<Notification>> getNotifications(Session session, {int? clientReportedId}) async {
+    var userId = session.authenticated?.userIdentifier != null 
+        ? int.parse(session.authenticated!.userIdentifier!) 
+        : null;
+
+    if (userId == null && clientReportedId != null) {
+        userId = clientReportedId;
+    }
+
+    if (userId == null) {
+         return [];
+    }
+
+    return Notification.db.find(
+      session,
+      where: (t) => t.ownerId.equals(userId),
+      orderBy: (t) => t.createdAt,
+      orderDescending: true,
+      limit: 50,
+      include: Notification.include(
+         relatedContact: Contact.include(),
+      ),
+    );
+  }
+  /// Add a new agenda item manually
+  Future<AgendaItem?> addAgendaItem(Session session, AgendaItem item) async {
+    final userIdentifier = session.authenticated?.userIdentifier;
+    final userId = userIdentifier != null ? int.parse(userIdentifier) : 1;
+
+    // Force ownerId to current user
+    item.ownerId = userId;
+    
+    // Ensure we don't try to insert ID
+    // Create copy without ID if needed, or ensuring ID is null is handled by client usually? 
+    // Serverpod Ignore ID on insert usually if not set.
+    
+    // Basic Validation
+    if (item.title.isEmpty) throw Exception('Title cannot be empty');
+
+    try {
+      final inserted = await AgendaItem.db.insertRow(session, item);
+      return inserted;
+    } catch (e, stack) {
+      session.log('Add Agenda Item Error: $e', level: LogLevel.error, stackTrace: stack);
+      return null;
+    }
+  }
+
+  /// Delete a contact
+  Future<bool> deleteContact(Session session, int contactId) async {
+    var userId = session.authenticated?.userIdentifier != null 
+        ? int.parse(session.authenticated!.userIdentifier!) 
+        : 1; // Fallback to 1 for dev/offline mode
+
+    final contact = await Contact.db.findById(session, contactId);
+    if (contact == null || contact.ownerId != userId) {
+      return false;
+    }
+
+    try {
+      // Unlink interactions first (soft delete effect on interactions)
+      // Use SQL directly because 'contactId' might not be nullable in ORM if relation is required, 
+      // but here we are setting to 0 (or NULL if column allows).
+      // Protocol says `Contact?`, so it is nullable in DB.
+      await session.db.unsafeQuery(
+          'UPDATE recall_interaction SET "linkedContactId" = NULL WHERE "linkedContactId" = $contactId AND "ownerId" = $userId'
+      );
+      
+      // Unlink Agenda Items
+      await session.db.unsafeQuery(
+          'UPDATE recall_agenda_item SET "linkedContactId" = NULL WHERE "linkedContactId" = $contactId AND "ownerId" = $userId'
+      );
+
+      // Unlink Notifications
+      await session.db.unsafeQuery(
+          'UPDATE recall_notification SET "relatedContactId" = NULL WHERE "relatedContactId" = $contactId AND "ownerId" = $userId'
+      );
+
+      // Delete contact
+      await Contact.db.deleteRow(session, contact);
+      return true;
+    } catch (e, stack) {
+      session.log('Delete Contact Error: $e', level: LogLevel.error, stackTrace: stack);
+      return false;
+    }
   }
 }

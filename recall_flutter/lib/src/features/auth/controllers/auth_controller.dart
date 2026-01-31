@@ -28,6 +28,7 @@ class AuthController {
       'profile',
       'https://www.googleapis.com/auth/gmail.readonly',
       'https://www.googleapis.com/auth/gmail.compose',
+      'https://www.googleapis.com/auth/calendar.readonly',
     ],
     serverClientId: dotenv.env['GOOGLE_CLIENT_ID'],
     forceCodeForRefreshToken: true,
@@ -40,6 +41,7 @@ class AuthController {
       'profile',
       'https://www.googleapis.com/auth/gmail.readonly',
       'https://www.googleapis.com/auth/gmail.compose',
+      'https://www.googleapis.com/auth/calendar.readonly',
     ],
     serverClientId: dotenv.env['GOOGLE_CLIENT_ID'],
     forceCodeForRefreshToken: false, // CRITICAL: Disable for silent sign-in to work reliable
@@ -278,6 +280,7 @@ class AuthController {
 
   /// Sign out
   Future<void> signOut() async {
+    print('AuthController: signOut called');
     // Sign out of both configs just to be safe
     try { await _googleSignInSilent.signOut(); } catch (_) {}
     try { await _googleSignInInteractive.signOut(); } catch (_) {}
@@ -290,11 +293,30 @@ class AuthController {
     await prefs.remove(_userNameKey);
     await prefs.remove(_userEmailKey);
     await prefs.remove(_userPhotoKey);
-    
+    print('AuthController: SharedPrefs cleared');
+
     try {
       await sessionManager.signOutDevice();
+      print('AuthController: sessionManager.signOutDevice completed');
     } catch (e) {
       print('Session signout error: $e');
+    }
+    
+    // FORCE CLEAR Key Manager to prevent "ghost" sessions
+    try {
+      await client.authenticationKeyManager?.remove();
+      print('AuthController: Forced key removal');
+      
+      // Nuclear Reset: Find and delete ANY serverpod key in SharedPreferences
+      final allKeys = prefs.getKeys();
+      for (final key in allKeys) {
+        if (key.contains('serverpod_authentication_key') || key.contains('content-type')) {
+           print('AuthController: Nuclear delete key -> $key');
+           await prefs.remove(key);
+        }
+      }
+    } catch (e) {
+      print('Key removal error: $e');
     }
   }
 }

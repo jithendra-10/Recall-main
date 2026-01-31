@@ -20,6 +20,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen>
   @override
   void initState() {
     super.initState();
+    print("LIFECYCLE: SignInScreen Mounted");
     _pulseController = AnimationController(
       duration: const Duration(seconds: 2),
       vsync: this,

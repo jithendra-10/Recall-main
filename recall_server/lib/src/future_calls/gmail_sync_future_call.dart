@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import '../generated/protocol.dart';
 import '../services/gemini_service.dart';
 import '../utils/encryption_helper.dart';
+import '../services/fcm_service.dart';
 
 class GmailSyncFutureCall extends FutureCall {
   // Load credentials from config file
@@ -81,14 +82,40 @@ class GmailSyncFutureCall extends FutureCall {
         );
       }
     }
+
+    // RECURSION: If this was a global sync (targetedUserId == null), schedule the next one.
+    if (targetedUserId == null) {
+      session.log('Scheduling next global sync in 60 minutes...', level: LogLevel.info);
+      // We don't await this; just schedule it
+      session.serverpod.futureCallWithDelay(
+        'gmail_sync',
+        null,
+        const Duration(minutes: 60),
+      ).catchError((e) {
+         session.log('Failed to schedule next recursive sync: $e', level: LogLevel.error);
+      });
+    }
   }
 
   Future<void> _syncUser(Session session, UserConfig userConfig) async {
-    final encryptedToken = userConfig.googleRefreshToken!;
-    final refreshToken = EncryptionHelper.decrypt(encryptedToken);
+    String refreshToken = '';
+    try {
+      final encryptedToken = userConfig.googleRefreshToken!;
+      refreshToken = EncryptionHelper.decrypt(encryptedToken);
+    } catch (e) {
+      session.log('Decryption failed for user ${userConfig.userInfoId}. Disabling Sync. Error: $e', level: LogLevel.error);
+      // Disable sync to prevent infinite retry loops
+      userConfig.googleRefreshToken = null;
+      userConfig.isSyncing = false;
+      await UserConfig.db.updateRow(session, userConfig);
+      return;
+    }
 
     if (refreshToken.isEmpty) {
-        session.log('Failed to decrypt token for user ${userConfig.userInfoId}', level: LogLevel.error);
+        session.log('Empty refresh token for user ${userConfig.userInfoId}', level: LogLevel.warning);
+        userConfig.googleRefreshToken = null;
+        userConfig.isSyncing = false;
+        await UserConfig.db.updateRow(session, userConfig);
         return;
     }
     
@@ -151,7 +178,7 @@ class GmailSyncFutureCall extends FutureCall {
                 final message = await gmailApi.users.messages.get('me', msg.id!, format: 'full');
                 
                 if (_shouldFilterEmail(message)) {
-                  // print('DEBUG: Filtered out ${msg.id}');
+                  print('DEBUG: Filtered out ${message.snippet?.substring(0, 20)}... (ID: ${msg.id})');
                   continue;
                 }
                 
@@ -171,7 +198,7 @@ class GmailSyncFutureCall extends FutureCall {
 
 
       // Update health scores for all contacts
-      await _updateHealthScores(session, userConfig.userInfoId);
+      await _updateHealthScores(session, userConfig);
 
       // Update sync time
       userConfig.lastSyncTime = DateTime.now().toUtc();
@@ -329,7 +356,7 @@ class GmailSyncFutureCall extends FutureCall {
     final existing = await Interaction.db.findFirstRow(
       session,
       where: (t) => t.ownerId.equals(userConfig.userInfoId) & 
-                    t.contactId.equals(contactId) &
+                    t.linkedContactId.equals(contactId) &
                     t.date.equals(emailDate),
     );
     
@@ -383,7 +410,7 @@ class GmailSyncFutureCall extends FutureCall {
     // Create interaction
     final interaction = Interaction(
       ownerId: userConfig.userInfoId,
-      contactId: contact.id!,
+      linkedContactId: contact.id!,
       date: emailDate,
       snippet: formattedSnippet,
       subject: subject,
@@ -416,7 +443,7 @@ class GmailSyncFutureCall extends FutureCall {
           
           final agendaItem = AgendaItem(
             ownerId: userConfig.userInfoId,
-            contactId: contact.id!, // Link to the contact
+            linkedContactId: contact.id, // Link to the contact
             interactionId: savedInteraction.id, // Link to the source email
             title: title,
             description: summary, // Use the AI summary as context
@@ -435,6 +462,99 @@ class GmailSyncFutureCall extends FutureCall {
         session.log('Failed to create AgendaItem: $e', level: LogLevel.warning);
       }
     }
+
+    // --- FOLLOW-UP NOTIFICATION LOGIC ---
+    if (analysis['needs_follow_up'] == true) {
+      if (contact.id != null) {
+        try {
+          await _createNotification(
+            session, 
+            userConfig.userInfoId, 
+            'follow_up', 
+            'Follow-up Needed', 
+            'The email "$subject" from ${contact.name ?? contact.email} requires your attention.', 
+            contact.id!,
+            'Draft Reply'
+          );
+        } catch (e) {
+          session.log('Failed to create Follow-up Notification: $e', level: LogLevel.warning);
+        }
+      }
+    }
+
+    // --- IMPORTANT MAIL NOTIFICATION LOGIC ---
+    // User requested notifications for important mail context
+    final isImportant = (eventData != null && eventData['priority'] == 'high') || 
+                        tags.toLowerCase().contains('urgent') || 
+                        tags.toLowerCase().contains('important');
+
+    if (isImportant) {
+      if (contact.id != null) {
+        try {
+          await _createNotification(
+            session, 
+            userConfig.userInfoId, 
+            'urgent', 
+            'Important Mail', 
+            'High priority email from ${contact.name ?? contact.email}: "${summary}"', 
+            contact.id!,
+            'View Email'
+          );
+        } catch (e) {
+          session.log('Failed to create Urgent Notification: $e', level: LogLevel.warning);
+        }
+      }
+    }
+  }
+
+  Future<void> _createNotification(
+    Session session, 
+    int userId, 
+    String type, 
+    String title, 
+    String message, 
+    int contactId, 
+    String actionLabel
+  ) async {
+      // Dedup check (simple: don't duplicate same type/contact in last 24h)
+      final existing = await Notification.db.findFirstRow(
+        session,
+        where: (t) => t.ownerId.equals(userId) & 
+                      t.relatedContactId.equals(contactId) &
+                      t.type.equals(type) &
+                      (t.createdAt > DateTime.now().toUtc().subtract(const Duration(hours: 24))),
+      );
+
+      if (existing != null) return;
+
+      final notification = Notification(
+        ownerId: userId,
+        type: type,
+        title: title,
+        message: message,
+        relatedContactId: contactId,
+        createdAt: DateTime.now().toUtc(),
+        isRead: false,
+        actionLabel: actionLabel,
+      );
+      await Notification.db.insertRow(session, notification);
+      session.log('Created Notification ($type) for user $userId', level: LogLevel.info);
+      
+      // SEND PUSH NOTIFICATION
+      try {
+        await FCMService().sendNotification(
+          session: session, 
+          title: title, 
+          body: message,
+          data: {
+             'type': type,
+             'contactId': contactId.toString(),
+             'actionLabel': actionLabel,
+          }
+        );
+      } catch (e) {
+         session.log('Failed to send FCM push: $e', level: LogLevel.warning);
+      }
   }
 
   String _extractBody(gmail.Message message) {
@@ -469,7 +589,8 @@ class GmailSyncFutureCall extends FutureCall {
     }
   }
 
-  Future<void> _updateHealthScores(Session session, int userId) async {
+  Future<void> _updateHealthScores(Session session, UserConfig userConfig) async {
+    final userId = userConfig.userInfoId;
     final contacts = await Contact.db.find(
       session,
       where: (t) => t.ownerId.equals(userId),
@@ -492,6 +613,35 @@ class GmailSyncFutureCall extends FutureCall {
 
       contact.healthScore = score;
       await Contact.db.updateRow(session, contact);
+
+      // DRIFTING NOTIFICATION LOGIC
+      if (score < 50 && userConfig.driftingAlertsEnabled) {
+         if (contact.id == null) continue;
+
+         // Check if we already notified recently to avoid spam
+         final existingNotif = await Notification.db.findFirstRow(
+            session,
+            where: (t) => t.ownerId.equals(userId) & 
+                          t.relatedContactId.equals(contact.id!) &
+                          t.type.equals('drifting') &
+                          (t.createdAt > DateTime.now().toUtc().subtract(const Duration(days: 7))),
+         );
+
+         if (existingNotif == null) {
+            final notification = Notification(
+               ownerId: userId,
+               type: 'drifting',
+               title: 'Relationship Drifting',
+               message: 'Your health score with ${contact.name ?? contact.email} has dropped below 50%.',
+               relatedContactId: contact.id!,
+               createdAt: DateTime.now().toUtc(),
+               isRead: false,
+               actionLabel: 'Reconnect',
+            );
+            await Notification.db.insertRow(session, notification);
+            session.log('Created Drifting Notification for ${contact.email}', level: LogLevel.info);
+         }
+      }
     }
   }
   Future<void> _createRawInteraction(
@@ -509,7 +659,7 @@ class GmailSyncFutureCall extends FutureCall {
       
       final interaction = Interaction(
         ownerId: userConfig.userInfoId,
-        contactId: contact.id!,
+        linkedContactId: contact.id!,
         date: date,
         snippet: snippet,
         subject: subject,

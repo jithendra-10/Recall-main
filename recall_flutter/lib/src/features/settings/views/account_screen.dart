@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:recall_flutter/src/core/app_colors.dart';
 import 'package:recall_flutter/main.dart'; // For user session
 import 'package:recall_flutter/src/features/auth/controllers/auth_controller.dart';
-import 'package:recall_flutter/src/features/auth/views/splash_screen.dart' hide AppColors;
+import 'package:recall_flutter/src/features/auth/views/sign_in_screen.dart';
+
+final isLoggingOutProvider = StateProvider<bool>((ref) => false);
 
 class AccountScreen extends ConsumerWidget {
   const AccountScreen({super.key});
@@ -64,29 +66,52 @@ class AccountScreen extends ConsumerWidget {
             const SizedBox(height: 32),
 
             // Sign Out Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () async {
-                  await ref.read(authControllerProvider).signOut();
-                  if (context.mounted) {
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(builder: (context) => const SplashScreen()),
-                      (route) => false,
-                    );
-                  }
-                },
-                icon: const Icon(Icons.logout, color: Colors.white),
-                label: const Text('Sign Out', style: TextStyle(color: Colors.white)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.surfaceDark,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: Colors.white.withOpacity(0.1)),
+            // Sign Out Button
+            Consumer(
+              builder: (context, ref, child) {
+                 final isLoading = ref.watch(isLoggingOutProvider);
+                 
+                 return SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: isLoading ? null : () async {
+                      ref.read(isLoggingOutProvider.notifier).state = true;
+                      
+                      try {
+                        // Race condition: Wait 2 seconds max, then just leave
+                        await ref.read(authControllerProvider).signOut().timeout(
+                          const Duration(seconds: 2), 
+                          onTimeout: () {
+                            print("Logout timed out, forcing navigation."); 
+                          }
+                        );
+                      } catch (e) {
+                         print("Logout error: $e");
+                      } finally {
+                         if (context.mounted) {
+                            Navigator.of(context).pushAndRemoveUntil(
+                              MaterialPageRoute(builder: (context) => const SignInScreen()),
+                              (route) => false,
+                            );
+                            ref.read(isLoggingOutProvider.notifier).state = false;
+                        }
+                      }
+                    },
+                    icon: isLoading 
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Icon(Icons.logout, color: Colors.white),
+                    label: Text(isLoading ? 'Signing Out...' : 'Sign Out', style: const TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.surfaceDark,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(color: Colors.white.withOpacity(0.1)),
+                      ),
+                    ),
                   ),
-                ),
-              ),
+                );
+              },
             ),
             
             const SizedBox(height: 48),

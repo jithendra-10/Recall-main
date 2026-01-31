@@ -58,58 +58,75 @@ class HistoryScreen extends ConsumerWidget {
                 
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
-                  child: InkWell(
-                    onTap: () {
-                      ref.read(chatProvider.notifier).selectSession(session.id!);
-                      Navigator.pop(context); // Return to Chat Screen
-                    },
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
+                  child: Dismissible(
+                    key: ValueKey(session.id),
+                    direction: DismissDirection.endToStart,
+                    background: Container(
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.only(right: 20),
                       decoration: BoxDecoration(
-                        color: isActive 
-                            ? AppColors.primary.withOpacity(0.15) 
-                            : const Color(0xFF252B33),
+                        color: Colors.red.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(12),
-                        border: isActive 
-                            ? Border.all(color: AppColors.primary.withOpacity(0.5)) 
-                            : null,
+                        border: Border.all(color: Colors.red.withOpacity(0.5)),
                       ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.chat_bubble_outline,
-                            color: isActive ? AppColors.primary : Colors.white70,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  session.title ?? 'Conversation',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-                                    fontSize: 15,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  _formatDate(session.updatedAt ?? DateTime.now()),
-                                  style: TextStyle(
-                                    color: Colors.white.withOpacity(0.4),
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
+                      child: const Icon(Icons.delete, color: Colors.red),
+                    ),
+                    onDismissed: (direction) {
+                       ref.read(chatProvider.notifier).deleteSession(session.id!);
+                    },
+                    child: InkWell(
+                      onTap: () {
+                        ref.read(chatProvider.notifier).selectSession(session.id!);
+                        Navigator.pop(context); // Return to Chat Screen
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: isActive 
+                              ? AppColors.primary.withOpacity(0.15) 
+                              : const Color(0xFF252B33),
+                          borderRadius: BorderRadius.circular(12),
+                          border: isActive 
+                              ? Border.all(color: AppColors.primary.withOpacity(0.5)) 
+                              : null,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.chat_bubble_outline,
+                              color: isActive ? AppColors.primary : Colors.white70,
+                              size: 20,
                             ),
-                          ),
-                          Icon(Icons.chevron_right, color: Colors.white.withOpacity(0.2)),
-                        ],
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    session.title ?? 'Conversation',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                                      fontSize: 15,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _formatDate(session.updatedAt ?? DateTime.now()),
+                                    style: TextStyle(
+                                      color: Colors.white.withOpacity(0.4),
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(Icons.chevron_right, color: Colors.white.withOpacity(0.2)),
+                          ],
+                        ),
                       ),
                     ),
                   ),
