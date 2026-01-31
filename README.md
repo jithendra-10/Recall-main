@@ -1,6 +1,15 @@
-# Recall
+# Recall: The Flutter Butler
 
-Recall is an intelligent personal relationship management app that integrates with Gmail to help you remember details about your contacts, generate drafts, and gain insights from your communications.
+**Recall** is an intelligent personal assistant application designed to act as your digital "Butler". Built to help you stay on top of your chaotic digital life, Recall aggregates your emails, manages your agenda, and listens to your voice commands to keep you organized.
+
+## Powered by Serverpod 🚀
+
+This project is a showcase of **Serverpod's** capabilities, leveraging its full stack Dart architecture for efficiency and scalability:
+
+*   **Future Calls**: Heavy background tasks, such as syncing thousands of emails from Gmail, are handled asynchronously using Serverpod's `FutureCall` system (`GmailSyncFutureCall`). This ensures the app acts as a proactive assistant, gathering data without blocking the UI.
+*   **Generated Client & Protocol**: We utilized `.spy.yaml` files to define our data models (Agenda, Chat, Notification), resulting in a auto-generated, type-safe Dart client. This allowed for rapid iteration and zero disconnect between backend and frontend.
+*   **Authentication**: Secure Google Sign-In is implemented using Serverpod's auth module, managing sessions and user security out of the box.
+*   **ORM**: Complex queries for dashboard aggregation are handled via Serverpod's generated ORM, keeping code readable and maintainable.
 
 ## Project Structure
 
@@ -41,7 +50,8 @@ SERVER_URL=http://your_server_ip:8080/
     ```
 
 ## Features
-*   **Gmail Sync**: Background synchronization of emails.
-*   **AI Insights**: Uses Google Gemini to summarize interactions and extract intent.
-*   **RAG (Retrieval-Augmented Generation)**: Chat with your email history.
-*   **Auto-Drafting**: Generate context-aware email replies.
+*   **🗣️ Voice-First Interface**: Speak to your butler to set tasks or query data.
+*   **📧 Smart Sync**: Background synchronization of emails via Serverpod Future Calls.
+*   **🧠 AI Insights**: Uses Google Gemini to summarize interactions and extract intent.
+*   **📅 Agenda Management**: Unified view of your day.
+*   **⚡ Real-time**: Live updates via Serverpod's websocket connection.
