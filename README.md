@@ -52,6 +52,6 @@ SERVER_URL=http://your_server_ip:8080/
 ## Features
 *   **🗣️ Voice-First Interface**: Speak to your butler to set tasks or query data.
 *   **📧 Smart Sync**: Background synchronization of emails via Serverpod Future Calls.
-*   **🧠 AI Insights**: Uses Google Gemini to summarize interactions and extract intent.
+*   **🧠 AI Insights**: Uses **Groq (Llama 3)** for ultra-fast summarization and intent extraction.
 *   **📅 Agenda Management**: Unified view of your day.
 *   **⚡ Real-time**: Live updates via Serverpod's websocket connection.
