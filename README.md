@@ -1,27 +1,51 @@
 # Recall: The Intelligent Flutter Butler 🤖✨
 
-> **"Your memory, upgraded."**
-
-**Recall** is an agentic personal relationship manager designed to act as your proactive digital butler. It doesn't just store your to-do list; it actively listens to your voice, watches your inbox, and organizes your life using advanced AI.
+> **"Your digital life, proactively managed by an Agentic AI."**
 
 ---
 
-## 🧐 The Problem
-We live in a stream of noise.
-*   **Context Switching**: Moving between Gmail, Calendar, and Notes apps kills productivity.
-*   **Passive Tools**: Traditional apps wait for you to input data. They don't *help* untill you do the work.
-*   **Data Silos**: Your email knows you have a meeting, but your calendar doesn't know *why* that meeting is important.
-
-## 💡 The Solution: Recall
-Recall connects these silos into a single, intelligent timeline. It uses **Serverpod** as a brain to process data in the background and **Groq AI** to understand human intent instantly.
+## 📖 Table of Contents
+1.  [Executive Summary](#-executive-summary)
+2.  [The Problem Statement](#-the-problem-statement)
+3.  [The Solution: Agentic Architecture](#-the-solution-agentic-architecture)
+4.  [Technical Deep Dive](#-technical-deep-dive)
+    *   [Backend: The Power of Serverpod](#backend-the-power-of-serverpod)
+    *   [Artificial Intelligence: Groq & Llama 3](#artificial-intelligence-groq--llama-3)
+    *   [Frontend: Flutter & Riverpod](#frontend-flutter--riverpod)
+5.  [Key Features In-Depth](#-key-features-in-depth)
+6.  [Installation & Deployment Manual](#-installation--deployment-manual)
+7.  [Future Roadmap](#-future-roadmap)
 
 ---
 
-## 🏗️ Technical Architecture
+## 🧐 Executive Summary
 
-Recall is a showcase of a modern **Dart Full Stack**.
+**Recall** is not simply a task management application; it is an **Autonomous Personal Relationship Manager**. It acts as a proactive digital "Butler" that creates order from the chaos of modern digital communication. 
+
+Unlike traditional tools that act as passive data stores—waiting for you to input tasks manually—Recall works in the background. It connects to your personal data streams (starting with **Gmail**), analyzes them using **Large Language Models (LLMs)**, and constructs a unified, intelligent agenda of your life.
+
+Built for the **Serverpod Hackathon**, Recall demonstrates how Dart can be used for the entire stack: from the pixel-perfect mobile UI (Flutter) to the robust, scalable backend (Serverpod), all communicating via a type-safe generated protocol.
+
+---
+
+## � The Problem Statement
+
+Modern professionals face a crisis of **Context Switching** and **Data Fragmentation**.
+
+*   **The Inbox Trap**: Your "To-Do" list is often buried inside your email inbox. You read an email, mentally note a task, and then it gets buried by ten new newsletters.
+*   **Passive Tools**: Calendar apps know *when* a meeting is, but they don't know *what* it's about or *who* you are meeting. They lack context.
+*   **The "Entry" Tax**: The friction of manually entering a task into a mobile app is high. If it takes more than 5 seconds, you won't do it.
+
+---
+
+## 💡 The Solution: Agentic Architecture
+
+Recall solves these problems by inverting the relationship. Instead of you serving the app, the app serves you.
 
 ### High-Level Data Flow
+
+The system is designed as a **Hub-and-Spoke** model with Serverpod at the center.
+
 ```mermaid
 graph TD
     User((User)) -->|Voice Command| App(Flutter Client)
@@ -39,96 +63,120 @@ graph TD
     FCM -->|Wake Up| App
 ```
 
-### 1. The Backend (Serverpod)
-The heart of Recall is a **Serverpod** monolith that handles:
-*   **Authentication**: We use `serverpod_auth` to handle Google Sign-In securely. Session tokens are managed automatically.
-*   **Database (ORM)**: All data models (`AgendaItem`, `ChatMessage`, `Contact`) are defined in `.spy.yaml` files. Serverpod generates the SQL migrations and Dart classes automatically.
-    *   *Example*: Querying "High Priority" tasks is type-safe: `AgendaItem.db.find(session, where: (t) => t.priority.equals(Priority.high))`
-*   **Future Calls (The Sync Engine)**: This is critical. To avoid blocking the UI, we use `GmailSyncFutureCall`. This is a scheduled background job that:
-    1.  Wakes up every 15 minutes.
-    2.  Fetches new emails via Gmail API.
-    3.  Runs them through **Groq AI** to see if they are "Actionable".
-    4.  If actionable, it creates an `AgendaItem` and pushes it to the client.
-
-### 2. The AI Layer (Groq & Llama 3)
-We moved from traditional APIs to **Groq** for its blistering speed (~300 tokens/sec).
-*   **Intent Recognition**: When a user speaks, we send the transcript to Groq. 
-    *   *Input*: "Meet Alex tomorrow for coffee." 
-    *   *Output JSON*: `{"action": "create_event", "who": "Alex", "time": "2024-02-01T10:00:00"}`.
-*   **RAG (Retrieval Augmented Generation)**: When you ask "What did Alex say about the project?", we vector-search your past emails and feed the context to Llama 3 to generate a precise answer.
-
-### 3. The Frontend (Flutter)
-A Reactive, "Voice-First" UI.
-*   **State Management**: `Riverpod` manages the application state.
-*   **Offline First**: We use **Hive** to cache agenda items locally. You can view your schedule even on an airplane.
-*   **Voice Processing**: We use `speech_to_text` for on-device recognition, ensuring immediate feedback before sending data to the server.
+1.  **Ingestion**: Serverpod runs "Future Calls" (background jobs) to periodically fetch data from Gmail.
+2.  **Cognition**: Data is sent to **Groq** (running Llama 3-70b) to determine "Intent". Is this spam? Is this a meeting request? Is this a bill?
+3.  **Action**: If an intent is found, Serverpod creates a structured database record (`AgendaItem`) and notifies the user via Firebase Cloud Messaging (FCM).
 
 ---
 
-## ✨ Key Features & Capabilities
+## 🛠 Technical Deep Dive
+
+### Backend: The Power of Serverpod
+
+We chose **Serverpod** essentially for its "Superpowers" in three specific areas:
+
+#### 1. Future Calls (The "Heartbeat")
+Background processing is notoriously difficult in mobile app backends. Serverpod makes it trivial. We implemented `GmailSyncFutureCall`, a persistent worker that:
+*   Wakes up on a schedule.
+*   Authenticates with Google using stored refresh tokens.
+*   Processes batches of emails asynchronously.
+*   **Benefit**: The user's phone handling zero processing load. The battery is saved, yet the data is always fresh.
+
+#### 2. The Type-Safe Protocol (The "Nervous System")
+One of the biggest sources of bugs in full-stack development is the API mismatch (e.g., the server sends `user_id`, but the client expects `userId`).
+*   With Serverpod, we defined our models in `.spy.yaml` files.
+*   Serverpod **generated** the client-side Dart code automatically.
+*   **Benefit**: If we changed a database field on the server, the Flutter app would fail to *compile* immediately, alerting us to the break before we even ran the app.
+
+#### 3. Built-in Authentication
+*   We utilized the `serverpod_auth` module to handle the complex OAuth2 flows required for Google Sign-In.
+*   Session management, token refresh, and user security were handled out-of-the-box, saving us weeks of boilerplate development.
+
+### Artificial Intelligence: Groq & Llama 3
+
+We abandoned traditional proprietary models (like GPT-4) in favor of **Groq** running open-source models (Llama 3).
+
+*   **Why Groq?** Speed. Groq's LPU (Language Processing Unit) architecture delivers **~300 tokens per second**. 
+*   **The User Experience**: When a user speaks a voice command, they expect an instant response. Waiting 5 seconds for GPT-4 is unacceptable. with Groq, the response is effectively real-time.
+*   **Prompt Engineering**: We use "System Prompts" to force the LLM to output strict JSON. This allows our Serverpod backend to parse the AI's response directly into Dart objects without fragile regex parsing.
+
+### Frontend: Flutter & Riverpod
+
+The mobile application is the "Interface" to the Agent.
+*   **Voice-First Design**: The UI features a prominent microphone button. We use `speech_to_text` for on-device transcription to ensure privacy and low latency.
+*   **Offline-First**: We use **Hive** (a NoSQL local database) to mirror the Serverpod data using the `AgendaItem` models. This ensures the user can view their schedule even without an internet connection.
+*   **Riverpod**: Used for dependency injection and state management, keeping our UI logic separate from the Serverpod client logic.
+
+---
+
+## 🔍 Key Features In-Depth
 
 ### 🗣️ Voice Command Center
-Recall's primary interface is your voice.
-*   **Natural Language Processing**: You don't need to speak like a robot. "Remind me to buy milk" and "I need milk, add it to the list" result in the same structured task.
-*   **Context Awareness**: If you say "Call him back", Recall knows you are looking at Alex's profile and links the task to *him*.
+*   **Natural Language Understanding**: You can say complex things like *"I need to meet John next Tuesday at 4 PM to discuss the Q3 roadmap."*
+*   **Entity Extraction**: The AI extracts:
+    *   **Who**: "John" (Links to Contact ID #124)
+    *   **When**: "Next Tuesday at 4 PM" (Calculates ISO8601 Timestamp)
+    *   **What**: "Discuss Q3 roadmap" (Sets as Title/Description)
 
-### 📧 Intelligent Gmail Sync
-Recall is your email filter.
-*   **Noise Cancellation**: It ignores newsletters, OTPs, and receipts.
-*   **Entity Extraction**: It spots dates ("Next Tuesday") and converts them into actual timestamps in your calendar.
-
-### � Privacy & Security
-*   **Data Ownership**: You host the Serverpod instance. Your data lives in your PostgreSQL database, not in some proprietary cloud.
-*   **Secret Management**: API Keys are stored in `.env` files and never exposed to the client.
+### 📧 Intelligent Context & RAG
+Recall implements a basic **RAG (Retrieval Augmented Generation)** system.
+*   When you view a contact, Recall fetches the last 5 emails and summary notes associated with them.
+*   The AI generates a "Relationship Summary", reminding you of deadlines, promises you made, or unanswered questions.
 
 ---
 
-## 🛠️ Installation & Setup Manual
+## � Installation & Deployment Manual
+
+Follow these steps to deploy your own instance of Recall.
 
 ### Prerequisites
-1.  **Dart SDK** (>= 3.0) & **Flutter SDK** (>= 3.19)
-2.  **Docker Desktop** (Required for Postgres & Redis)
-3.  **Google Cloud Console Account** (For Gmail API & OAuth)
-4.  **Groq API Key** (For AI Intelligence)
+*   **Dart SDK**: Version 3.0 or higher.
+*   **Flutter SDK**: Version 3.19 or higher.
+*   **Docker Desktop**: Essential for running the PostgreSQL database and Redis cache.
+*   **Groq API Key**: Get one from [console.groq.com](https://console.groq.com).
 
-### Step 1: Clone & Configure
+### 1. Repository Setup
 ```bash
 git clone https://github.com/jithendra-10/Recall-main.git
 cd Recall-main
 ```
 
-### Step 2: Secret Management
-Create a `.env` file in the root directory.
+### 2. Secrets Management
+Security is paramount. We do not hardcode keys. Create a `.env` file in the root (`/`) directory.
+
 ```env
-# AI Provider
-GROQ_API_KEY=gsk_...
+# AI Intelligence Provider
+GROQ_API_KEY=gsk_your_key_here
 
-# Google OAuth (Create in Google Cloud Console)
-GOOGLE_CLIENT_ID=...
-GOOGLE_CLIENT_SECRET=...
+# Google Cloud Console (OAuth 2.0 Credentials)
+GOOGLE_CLIENT_ID=your_client_id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your_client_secret
 
-# Server Config
+# Server Configuration
 SERVER_URL=http://localhost:8080/
-DATABASE_PASSWORD=...
+DATABASE_PASSWORD=postgres_password_here
 ```
-*Note: Copy this `.env` to `recall_server/config/` and `recall_flutter/assets/` if you are not using a deployment script.*
 
-### Step 3: Launch Local Backend
-1.  **Start Databases**:
+### 3. Backend Initialization
+The backend relies on Docker containers for persistence.
+
+1.  **Launch Containers**:
     ```bash
     cd recall_server
     docker-compose up -d --build
     ```
-2.  **Apply Migrations**:
+2.  **Apply Database Schema**:
+    This command connects to Postgres and creates the tables defined in our Protocol.
     ```bash
     dart bin/main.dart --apply-migrations
     ```
-3.  **Start Server**:
+3.  **Start the Server**:
     ```bash
     dart bin/main.dart
     ```
 
-### Step 4: Run Mobile App
+### 4. Client Launch
+Open a new terminal tab.
 ```bash
 cd recall_flutter
 flutter run
@@ -136,24 +184,13 @@ flutter run
 
 ---
 
-## 📂 Codebase Structure
+## � Future Roadmap
 
-*   **/recall_server**
-    *   `lib/src/endpoints`: **API Layer**. Contains `RecallEndpoint.dart` methods callable from Flutter.
-    *   `lib/src/future_calls`: **Background Workers**. `GmailSyncFutureCall.dart` lives here.
-    *   `lib/src/models`: **Database Schema**. Defined in yaml, compiled to Dart.
-*   **/recall_flutter**
-    *   `lib/src/features/dashboard`: **UI Logic**. The main timeline view.
-    *   `lib/src/features/voice`: **Audio Logic**. Handling microphone streams.
+Recall is just getting started. Here is our vision for V2:
+*   **WearOS Integration**: A dedicated watch app for quick voice capture on the go.
+*   **Calendar Bi-Directional Sync**: Currently we read from Gmail; next we will write back to Google Calendar.
+*   **Local LLM Support**: Running Llama 3 8B directly on the user's device (Pixel/iPhone) for total privacy and zero latency.
 
 ---
 
-## 🏆 Hackathon Context
-
-This project was built for the **Serverpod Hackathon**.
-*   **Goal**: To demonstrate how Serverpod can power "Agentic" workflows that run independently of the user.
-*   **Achievement**: We successfully built a system that manages relationships and tasks autonomously using Future Calls and Generative AI.
-
----
-
-**Recall** - *Don't just remember. Recall.*
+*Recall was proudly built with Dart, Flutter, and Serverpod.*
